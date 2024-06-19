@@ -9,6 +9,8 @@ import fontSrc from 'three/examples/fonts/helvetiker_bold.typeface.json?url'
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry'
 import { compressNormals } from 'three/examples/jsm/utils/GeometryCompressionUtils.js';
 import Character from './src/Character.js';
+import SemiNPC from './src/SemiNPC.js';
+import { ColorNodeUniform } from 'three/examples/jsm/renderers/common/nodes/NodeUniform.js';
 
 const isMobile = window.innerWidth <= 768
 
@@ -63,14 +65,33 @@ const mesh = new THREE.Mesh(geometry, material)
 scene.add(mesh)
 
 // load main charater from class
-const modelUrl = '3d_models/wolf/scene.gltf';
-const mainCharater = new Character(modelUrl, resolution);
+const characterUrl = '3d_models/wolf/scene.gltf';
+const mainCharater = new Character(characterUrl, resolution);
 
-// Add the model to the scene when it is loaded
+// load semi npc charater
+const npcUrl = '3d_models/goose/scene.gltf';
+const npcCharacter = new SemiNPC(
+	npcUrl, 
+	resolution, 
+	2,
+	0,
+	0,
+	false
+);
+
+// add the models to the scene when it is loaded
+// main
 const checkModelLoaded = setInterval(() => {
   if (mainCharater.modelLoaded) {
     scene.add(mainCharater.character);
     clearInterval(checkModelLoaded);
+  }
+}, 100);
+// npc
+const checkNPCLoaded = setInterval(() => {
+  if (npcCharacter.modelLoaded) {
+    scene.add(npcCharacter.character);
+    clearInterval(checkNPCLoaded);
   }
 }, 100);
 
@@ -104,7 +125,6 @@ const directionalLight = new THREE.DirectionalLight(0xffffff, 4.5)
 directionalLight.position.set(3, 10, 7)
 scene.add(ambientLight, directionalLight)
 
-
 // DUBUG: show the axes of coordinates system
 const axesHelper = new THREE.AxesHelper(3)
 scene.add(axesHelper)
@@ -116,7 +136,6 @@ const renderer = new THREE.WebGLRenderer({
 })
 document.body.appendChild(renderer.domElement)
 handleResize()
-
 renderer.toneMapping = THREE.ACESFilmicToneMapping
 renderer.toneMappingExposure = 1.2
 renderer.shadowMap.enabled = true
@@ -179,12 +198,28 @@ plane.receiveShadow = true
 // 	console.log("running ? : ", isRunning);
 // })
 
+mainCharater.addEventListener('updated', function () {
+
+	// if (mainCharater.checkEntitiesCollision(npcCharacter)) {
+	// 	console.log('eh eh eh collistion detected!!!')
+	// }
+})
+
 
 window.addEventListener('keyup', function(e){
   mainCharater.moveCharater(e.code);
 
+	if (npcCharacter.controlledMove) {
+		npcCharacter.moveCharater(e.code);
+	}
+
   // mainCharater.updatePosition();
-  console.log(e);
+  // console.log('key pressed ', e);
+
+	if (mainCharater.checkEntitiesCollision(npcCharacter)) {
+		console.log('eh eh eh collistion detected!!!')
+		npcCharacter.controlledMove = true
+	}
 
 })
 
