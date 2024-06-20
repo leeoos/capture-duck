@@ -11,6 +11,19 @@ import { compressNormals } from 'three/examples/jsm/utils/GeometryCompressionUti
 import Character from './src/Character.js';
 import SemiNPC from './src/SemiNPC.js';
 import { ColorNodeUniform } from 'three/examples/jsm/renderers/common/nodes/NodeUniform.js';
+import Obstacle from './src/Obstacle.js';
+
+// game variables
+const resolution = new THREE.Vector2(10, 10);
+const numObstacle = 40;
+let obstacles = {};
+const initialization = {
+	mainCharX: Math.floor(resolution.x / 2),
+	mainCharY: 0,
+	mainCharZ: 0,
+}
+const illigalIndex = initialization['mainCharX'] * resolution.x + initialization['mainCharZ']
+
 
 const isMobile = window.innerWidth <= 768
 
@@ -40,7 +53,6 @@ const params = {
 }
 
 // set up grid helper
-const resolution = new THREE.Vector2(10, 10) 
 const gridHelper = new THREE.GridHelper(
 	resolution.x,
 	resolution.y,
@@ -62,20 +74,28 @@ scene.add(gridHelper)
 const material = new THREE.MeshNormalMaterial()
 const geometry = new THREE.BoxGeometry(1, 1, 1)
 const mesh = new THREE.Mesh(geometry, material)
+mesh.position.set(Math.floor(resolution.x/2), 0, Math.floor(resolution.y/2))
 scene.add(mesh)
+
 
 // load main charater from class
 const characterUrl = '3d_models/wolf/scene.gltf';
-const mainCharater = new Character(characterUrl, resolution);
+const mainCharater = new Character(
+	characterUrl, 
+	resolution,
+	initialization['mainCharX'], // x coord
+	initialization['mainCharY'], // y coord
+	initialization['mainCharZ'] // z coord
+);
 
 // load semi npc charater
 const npcUrl = '3d_models/goose/scene.gltf';
 const npcCharacter = new SemiNPC(
 	npcUrl, 
 	resolution, 
-	2,
-	0,
-	0,
+	2, // x coord
+	0, // y coord
+	5, // z coord
 	false
 );
 
@@ -94,6 +114,25 @@ const checkNPCLoaded = setInterval(() => {
     clearInterval(checkNPCLoaded);
   }
 }, 100);
+
+
+
+// load obstacles and add obstacles
+for (let i = 0; i < numObstacle; i++) {
+	const treeUrl = '3d_models/tree1/scene.gltf';
+	const treeObs = new Obstacle(
+		treeUrl, 
+		resolution,
+		illigalIndex
+	);
+	const checkTreeLoaded = setInterval(() => {
+		if (treeObs.modelLoaded) {
+			scene.add(treeObs.obstacle);
+			clearInterval(checkTreeLoaded);
+		}
+	}, 100);
+	
+}
 
 // rendering sizes
 const sizes = {
@@ -177,35 +216,6 @@ plane.receiveShadow = true
 // EXPERIMENTS //
 
 
-// starting game
-// let isRunning = false;
-
-// function start_game(){
-//   if(!isRunning){ //if the game is not already started
-//     isRunning = setInterval( () => {
-//       mainCharater.updatePosition()
-//     },400)
-//   }
-// }
-
-// function stop_game(){
-//   clearInterval(isRunning);
-// }
-
-// perform motion
-// window.addEventListener('click',function(){
-// 	!isRunning ? start_game(): stop_game();
-// 	console.log("running ? : ", isRunning);
-// })
-
-mainCharater.addEventListener('updated', function () {
-
-	// if (mainCharater.checkEntitiesCollision(npcCharacter)) {
-	// 	console.log('eh eh eh collistion detected!!!')
-	// }
-})
-
-
 window.addEventListener('keyup', function(e){
   mainCharater.moveCharater(e.code);
 
@@ -213,8 +223,6 @@ window.addEventListener('keyup', function(e){
 		npcCharacter.moveCharater(e.code);
 	}
 
-  // mainCharater.updatePosition();
-  // console.log('key pressed ', e);
 
 	if (mainCharater.checkEntitiesCollision(npcCharacter)) {
 		console.log('eh eh eh collistion detected!!!')

@@ -1,0 +1,11 @@
+Model Information:
+* title:	Cartoon Tree
+* source:	https://sketchfab.com/3d-models/cartoon-tree-ebd34b4c54f74b5a934ca70b961a3cf8
+* author:	samsikua (https://sketchfab.com/samsikua)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Cartoon Tree" (https://sketchfab.com/3d-models/cartoon-tree-ebd34b4c54f74b5a934ca70b961a3cf8) by samsikua (https://sketchfab.com/samsikua) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
