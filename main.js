@@ -1,30 +1,26 @@
 import './style.css'
 import * as THREE from 'three'
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
-import * as dat from 'lil-gui'
-import gsap from 'gsap'
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader'
 import fontSrc from 'three/examples/fonts/helvetiker_bold.typeface.json?url'
-import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry'
-import { compressNormals } from 'three/examples/jsm/utils/GeometryCompressionUtils.js';
 import Character from './src/Character.js';
 import SemiNPC from './src/SemiNPC.js';
-import { ColorNodeUniform } from 'three/examples/jsm/renderers/common/nodes/NodeUniform.js';
 import Obstacle from './src/Obstacle.js';
 
 // game variables
-const resolution = new THREE.Vector2(10, 10);
-const numObstacle = 40;
+const resolution = new THREE.Vector2(20, 20);
+const numObstacle = 20;
+const numNPC = 3;
 let obstacles = {};
+let movables = {};
 const initialization = {
-	mainCharX: Math.floor(resolution.x / 2),
-	mainCharY: 0,
-	mainCharZ: 0,
+	mainCharPos: {
+		x: Math.floor(resolution.x / 2),
+		y: 0,
+		z: 0
+	} 
 }
-const illigalIndex = initialization['mainCharX'] * resolution.x + initialization['mainCharZ']
-
-
+const illigalIndex = 0;
 const isMobile = window.innerWidth <= 768
 
 // load fonts
@@ -39,11 +35,6 @@ const palettes = {
 	main: {
 		groundColor: 'black', //0x56f854,
 		fogColor: 'black', //0x39c09f,
-		rockColor: 0xebebeb, //0x7a95ff,
-		treeColor: 0x639541, //0x1d5846,
-		candyColor: 0x1d5846, //0x614bdd,
-		snakeColor: 0x1d5846, //0xff470a,
-		mouthColor: 0x39c09f,
 	}
 }
 let paletteName = localStorage.getItem('paletteName') || 'main'
@@ -52,6 +43,27 @@ const params = {
 	...selectedPalette,
 }
 
+// set up scene
+const scene = new THREE.Scene()
+scene.background = new THREE.Color(params.fogColor)
+scene.fog = new THREE.Fog(params.fogColor, 5, 40)
+
+// add plane
+// const planeGeometry = new THREE.PlaneGeometry(
+// 	resolution.x * 50,
+// 	resolution.y * 50
+// )
+const planeGeometry = new THREE.PlaneGeometry(resolution.x, resolution.y,resolution.x, resolution.y);
+planeGeometry.rotateX(-Math.PI * 0.5)
+const planeMaterial = new THREE.MeshStandardMaterial({
+	color: params.groundColor,
+})
+const plane = new THREE.Mesh(planeGeometry, planeMaterial)
+plane.position.x = resolution.x / 2  - (1/2);
+plane.position.z = resolution.y / 2 - (1/2);  
+plane.receiveShadow = true
+scene.add(plane)
+
 // set up grid helper
 const gridHelper = new THREE.GridHelper(
 	resolution.x,
@@ -59,80 +71,85 @@ const gridHelper = new THREE.GridHelper(
 	0xffffff,
 	0xffffff
 )
-gridHelper.position.set(resolution.x / 2 - 0.5, -0.49, resolution.y / 2 - 0.5)
+gridHelper.position.set(resolution.x / 2 - 0.5, 0, resolution.y / 2 - 0.5)
 gridHelper.material.transparent = true
 gridHelper.material.opacity = isMobile ? 0.75 : 0.3
-
-
-// set up scene
-const scene = new THREE.Scene()
-scene.background = new THREE.Color(params.fogColor)
-scene.fog = new THREE.Fog(params.fogColor, 5, 40)
 scene.add(gridHelper)
 
-// set up ref cube
-const material = new THREE.MeshNormalMaterial()
-const geometry = new THREE.BoxGeometry(1, 1, 1)
-const mesh = new THREE.Mesh(geometry, material)
-mesh.position.set(Math.floor(resolution.x/2), 0, Math.floor(resolution.y/2))
-scene.add(mesh)
 
+let mainCharacter; // Declare mainCharacter in a broader scope
 
-// load main charater from class
-const characterUrl = '3d_models/wolf/scene.gltf';
-const mainCharater = new Character(
-	characterUrl, 
-	resolution,
-	initialization['mainCharX'], // x coord
-	initialization['mainCharY'], // y coord
-	initialization['mainCharZ'] // z coord
-);
-
-// load semi npc charater
-const npcUrl = '3d_models/goose/scene.gltf';
-const npcCharacter = new SemiNPC(
-	npcUrl, 
-	resolution, 
-	2, // x coord
-	0, // y coord
-	5, // z coord
-	false
-);
-
-// add the models to the scene when it is loaded
-// main
-const checkModelLoaded = setInterval(() => {
-  if (mainCharater.modelLoaded) {
-    scene.add(mainCharater.character);
-    clearInterval(checkModelLoaded);
-  }
-}, 100);
-// npc
-const checkNPCLoaded = setInterval(() => {
-  if (npcCharacter.modelLoaded) {
-    scene.add(npcCharacter.character);
-    clearInterval(checkNPCLoaded);
-  }
-}, 100);
-
-
-
-// load obstacles and add obstacles
-for (let i = 0; i < numObstacle; i++) {
-	const treeUrl = '3d_models/tree1/scene.gltf';
-	const treeObs = new Obstacle(
-		treeUrl, 
-		resolution,
-		illigalIndex
-	);
-	const checkTreeLoaded = setInterval(() => {
-		if (treeObs.modelLoaded) {
-			scene.add(treeObs.obstacle);
-			clearInterval(checkTreeLoaded);
-		}
-	}, 100);
-	
+// function to load a character model and return a promise
+function loadCharacter(url, resolution, position, randomizePosition, obstacles, movables) {
+  return new Promise((resolve) => {
+    const character = new Character(url, resolution, position, randomizePosition, obstacles, movables);
+    const checkModelLoaded = setInterval(() => {
+      if (character.modelLoaded) {
+        movables[character.index] = character;
+        scene.add(character.model);
+        clearInterval(checkModelLoaded);
+        resolve(character);
+      }
+    }, 100);
+  });
 }
+
+// function to load a semi-NPC model and return a promise
+function loadSemiNPC(url, resolution, position, randomizePosition, obstacles, movables) {
+  return new Promise((resolve) => {
+    const npc = new SemiNPC(url, resolution, position, randomizePosition, obstacles, movables);
+    const checkModelLoaded = setInterval(() => {
+      if (npc.modelLoaded) {
+        movables[npc.index] = npc;
+        scene.add(npc.model);
+        clearInterval(checkModelLoaded);
+        resolve(npc);
+      }
+    }, 100);
+  });
+}
+
+// function to load an obstacle model and return a promise
+function loadObstacle(url, resolution, position, randomizePosition, obstacles, movables) {
+  return new Promise((resolve) => {
+    const obstacle = new Obstacle(url, resolution, position, randomizePosition, obstacles, movables);
+    const checkModelLoaded = setInterval(() => {
+      if (obstacle.modelLoaded) {
+        obstacles[obstacle.index] = obstacle;
+        scene.add(obstacle.model);
+        clearInterval(checkModelLoaded);
+        resolve(obstacle);
+      }
+    }, 100);
+  });
+}
+
+// Load the main character first then...
+const characterUrl = '3d_models/wolf/scene.gltf';
+loadCharacter(characterUrl, resolution, initialization['mainCharPos'], false, obstacles, movables)
+  .then((character) => {
+		mainCharacter = character;
+
+    // load NPCs after the main character is loaded
+    const npcPromises = [];
+		const npcUrl = '3d_models/goose/scene.gltf';
+    for (let j = 0; j < numNPC; j++) {
+      npcPromises.push(loadSemiNPC(npcUrl, resolution, undefined, true, obstacles, movables));
+    }
+    return Promise.all(npcPromises);
+  })
+  .then(() => {
+    // load obstacles after all NPCs are loaded
+    const obstaclePromises = [];
+    for (let i = 0; i < numObstacle; i++) {
+      const treeUrl = '3d_models/tree2/scene.gltf';
+      obstaclePromises.push(loadObstacle(treeUrl, resolution, undefined, true, obstacles, movables));
+    }
+    return Promise.all(obstaclePromises);
+  })
+  .catch((error) => {
+    console.error('Error loading models:', error);
+  });
 
 // rendering sizes
 const sizes = {
@@ -140,7 +157,7 @@ const sizes = {
 	height: window.innerHeight,
 }
 
-// set up camera
+// set up camera TODO change to follow character
 const fov = 60
 const camera = new THREE.PerspectiveCamera(fov, sizes.width / sizes.height, 0.1)
 const finalPosition = isMobile
@@ -152,11 +169,11 @@ const finalPosition = isMobile
 	  )
 const initialPosition = new THREE.Vector3(
 	resolution.x / 2 + 5,
-	4,
-	resolution.y / 2 + 4
+	5,
+	resolution.y / 2 + 5
 )
 camera.position.copy(initialPosition)
-// camera.lookAt(new THREE.Vector3(0, 2.5, 0))
+camera.lookAt(new THREE.Vector3(0, 2.5, 0))
 
 // set up lights
 const ambientLight = new THREE.AmbientLight(0xffffff, 1.5)
@@ -165,8 +182,8 @@ directionalLight.position.set(3, 10, 7)
 scene.add(ambientLight, directionalLight)
 
 // DUBUG: show the axes of coordinates system
-const axesHelper = new THREE.AxesHelper(3)
-scene.add(axesHelper)
+// const axesHelper = new THREE.AxesHelper(3)
+// scene.add(axesHelper)
 
 // set up renderer
 const renderer = new THREE.WebGLRenderer({
@@ -180,58 +197,31 @@ renderer.toneMappingExposure = 1.2
 renderer.shadowMap.enabled = true
 renderer.shadowMap.type = THREE.VSMShadowMap
 
-
 // set up OrbitControls
 const controls = new OrbitControls(camera, renderer.domElement)
 controls.enableDamping = true
-// controls.enableZoom = false
-// controls.enablePan = false
-// controls.enableRotate = false
 controls.target.set(
 	resolution.x / 2 - 2,
 	0,
 	resolution.y / 2 + (isMobile ? 0 : 2)
 )
 
-// set three js Clock
-// const clock = new THREE.Clock()
-
-// add grid
-const planeGeometry = new THREE.PlaneGeometry(
-	resolution.x * 50,
-	resolution.y * 50
-)
-planeGeometry.rotateX(-Math.PI * 0.5)
-const planeMaterial = new THREE.MeshStandardMaterial({
-	color: params.groundColor,
-})
-const plane = new THREE.Mesh(planeGeometry, planeMaterial)
-plane.position.x = resolution.x / 2 - 0.5
-plane.position.z = resolution.y / 2 - 0.5
-plane.position.y = -0.5
-scene.add(plane)
-plane.receiveShadow = true
-
-
-// EXPERIMENTS //
-
-
+// move around
 window.addEventListener('keyup', function(e){
-  mainCharater.moveCharater(e.code);
 
-	if (npcCharacter.controlledMove) {
-		npcCharacter.moveCharater(e.code);
+	mainCharacter.moveCharacter(e.code, obstacles, movables);
+	console.log(movables)
+	for (let key in movables) {
+		if (movables.hasOwnProperty(key)) {
+			let value = movables[key];
+			if (value.movable) {
+				value.moveCharacter(e.code, obstacles, movables);
+			}		
+			// console.log(`Key: ${key}, Value:`, value.movable);
+		}
 	}
-
-
-	if (mainCharater.checkEntitiesCollision(npcCharacter)) {
-		console.log('eh eh eh collistion detected!!!')
-		npcCharacter.controlledMove = true
-	}
-
 })
 
-//////////////////////////////////////////
 
 // frame loop
 function tic() {

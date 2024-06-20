@@ -4,13 +4,17 @@ import Character from './Character';
 
 export default class SemiNPC extends Character {
 
-  constructor(url, resolution, defX, defY, defZ, control) {
-    super(url, resolution, defX, defY, defZ);
-    this.controlledMove = control;
+  constructor(
+    url, 
+    resolution, 
+    setPosition = {x:0, y:0, z:0}, 
+    randomPos = false,
+    obstacles = null,
+    movables = null
+  ){
+    super(url, resolution, setPosition, randomPos, obstacles, movables);
+    this.movable = false;
   }
 
-  setControll() {
-    this.controlledMove = true;
-  }
 
 }
