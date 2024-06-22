@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import Entity from './Entity';
+import TWEEN from '@tweenjs/tween.js';
 
 export default class Character extends Entity {
 
@@ -20,6 +21,11 @@ export default class Character extends Entity {
     this.DOWN = new THREE.Vector3(0,0,-1);
     this.RIGHT = new THREE.Vector3(-1,0,0);
     this.LEFT = new THREE.Vector3(1,0,0);
+
+    // objaect componets
+    this.head = "head_s_08";
+    this.rArm = "R_forearm_twist_s_039";
+    this.lArm = "L_forearm_twist_s_025";
   }
 
   moveCharacter(keyCode, obstacles, movables, removables = null){
@@ -79,8 +85,57 @@ export default class Character extends Entity {
       updatedPos = false;
     }
 
-    if (updatedPos) super.updateMovable(movables, old_index)
+    if (updatedPos) {
+      super.updateMovable(movables, old_index);
+      this.animate();
+    } 
     return updatedPos;
-    
   }
+
+  animateArms() {
+
+    let leftArm = this.model.getObjectByName(this.lArm)
+    let rightArm = this.model.getObjectByName(this.rArm)
+
+	if (!leftArm || !rightArm) {
+			console.error('Arm bones not found!');
+			return;
+	}
+
+	const initialRotationLeft = { x: leftArm.rotation.x, y: leftArm.rotation.y, z: leftArm.rotation.z };
+	const targetRotationLeft = { x: Math.PI / 4, y: leftArm.rotation.y, z: leftArm.rotation.z };
+
+	const initialRotationRight = { x: rightArm.rotation.x, y: rightArm.rotation.y, z: rightArm.rotation.z };
+	const targetRotationRight = { x: -Math.PI / 4, y: rightArm.rotation.y, z: rightArm.rotation.z };
+
+	const leftArmTween = new TWEEN.Tween(initialRotationLeft)
+			.to(targetRotationLeft, 1000)
+			.easing(TWEEN.Easing.Quadratic.InOut)
+			.onUpdate(() => {
+					leftArm.rotation.x = initialRotationLeft.x;
+					leftArm.rotation.y = initialRotationLeft.y;
+					leftArm.rotation.z = initialRotationLeft.z;
+			})
+			.yoyo(true)
+			.repeat(Infinity);
+
+	const rightArmTween = new TWEEN.Tween(initialRotationRight)
+			.to(targetRotationRight, 1000)
+			.easing(TWEEN.Easing.Quadratic.InOut)
+			.onUpdate(() => {
+					rightArm.rotation.x = initialRotationRight.x;
+					rightArm.rotation.y = initialRotationRight.y;
+					rightArm.rotation.z = initialRotationRight.z;
+			})
+			.yoyo(true)
+			.repeat(Infinity);
+
+    leftArmTween.start();
+    rightArmTween.start();
+  }
+
+  animate() {
+    this.animateArms()
+  }
+
 }

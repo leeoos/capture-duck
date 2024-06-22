@@ -3,17 +3,19 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader'
 import fontSrc from 'three/examples/fonts/helvetiker_bold.typeface.json?url'
+import TWEEN from '@tweenjs/tween.js';
 import Character from './src/Character.js';
 import SemiNPC from './src/SemiNPC.js';
 import Obstacle from './src/Obstacle.js';
 import Enemy from './src/Enemy.js'
 
+
 // game variables
 const map_size = 10
 const resolution = new THREE.Vector2(map_size, map_size);
 const numObstacle = 1;
-const numNPC = 2;
-const numEnemies = 1;
+const numNPC = 0;
+const numEnemies = 0;
 const charCell = Math.floor(resolution.x / 2)
 const displace = 2 // initial space to leave for the main char
 const isMobile = window.innerWidth <= 768
@@ -222,8 +224,8 @@ window.addEventListener('keyup', function(e){
 			clearInterval(moveEnemy);
 		}
 		else {
-			game_status = 'active'
-			console.log('game active')
+			game_status = 'active';
+			console.log('game active');
 			const gameInterval = setInterval(moveEnemy, 500);
 		}
 	}
@@ -236,39 +238,85 @@ window.addEventListener('keyup', function(e){
 				let character = movables[index];
 				if (character.movable) {
 					character.moveCharacter(e.code, obstacles, movables);
+					// let rArm1 = character.model.getObjectByName("R_forearm_twist_s_039")
+					// let rArm2 = character.model.getObjectByName("R_forearm_twist_s_end_078")
+					// animateArms(rArm1);
+					// animateArms(rArm2);
 				}		
 			}
 		}
 		// console.log('Elements to remove ', removables)
 		removables.forEach((element) => {
 			// console.log('removing ', element)
-			scene.remove(element.model)
+			scene.remove(element.model);
 			delete removables[element]; 
 		});
 
 	}
-})
+});
 
 
 // frame loop
 function tic() {
-	controls.update()
-	renderer.render(scene, camera)
-	requestAnimationFrame(tic)
+	TWEEN.update();
+	controls.update();
+	renderer.render(scene, camera);
+	requestAnimationFrame(tic);
 }
-requestAnimationFrame(tic)
+requestAnimationFrame(tic);
 
 // adaptive windows 
-window.addEventListener('resize', handleResize)
+window.addEventListener('resize', handleResize);
 function handleResize() {
-	sizes.width = window.innerWidth
-	sizes.height = window.innerHeight
+	sizes.width = window.innerWidth;
+	sizes.height = window.innerHeight;
 
 	camera.aspect = sizes.width / sizes.height
-	camera.updateProjectionMatrix()
+	camera.updateProjectionMatrix();
 
 	renderer.setSize(sizes.width, sizes.height)
 
 	const pixelRatio = Math.min(window.devicePixelRatio, 2)
 	renderer.setPixelRatio(pixelRatio)
 }
+
+
+////////////// TEST //////////////////////
+// function animateArms(leftArm) {
+
+// 	// if (!leftArm || !rightArm) {
+// 	// 		console.error('Arm bones not found!');
+// 	// 		return;
+// 	// }
+
+// 	const initialRotationLeft = { x: leftArm.rotation.x, y: leftArm.rotation.y, z: leftArm.rotation.z };
+// 	const targetRotationLeft = { x: Math.PI / 4, y: leftArm.rotation.y, z: leftArm.rotation.z };
+
+// 	// const initialRotationRight = { x: rightArm.rotation.x, y: rightArm.rotation.y, z: rightArm.rotation.z };
+// 	// const targetRotationRight = { x: -Math.PI / 4, y: rightArm.rotation.y, z: rightArm.rotation.z };
+
+// 	const leftArmTween = new TWEEN.Tween(initialRotationLeft)
+// 			.to(targetRotationLeft, 1000)
+// 			.easing(TWEEN.Easing.Quadratic.InOut)
+// 			.onUpdate(() => {
+// 					leftArm.rotation.x = initialRotationLeft.x;
+// 					leftArm.rotation.y = initialRotationLeft.y;
+// 					leftArm.rotation.z = initialRotationLeft.z;
+// 			})
+// 			.yoyo(true)
+// 			.repeat(Infinity);
+
+// 	// const rightArmTween = new TWEEN.Tween(initialRotationRight)
+// 	// 		.to(targetRotationRight, 1000)
+// 	// 		.easing(TWEEN.Easing.Quadratic.InOut)
+// 	// 		.onUpdate(() => {
+// 	// 				rightArm.rotation.x = initialRotationRight.x;
+// 	// 				rightArm.rotation.y = initialRotationRight.y;
+// 	// 				rightArm.rotation.z = initialRotationRight.z;
+// 	// 		})
+// 	// 		.yoyo(true)
+// 	// 		.repeat(Infinity);
+
+// 	leftArmTween.start();
+// 	// rightArmTween.start();
+// }
