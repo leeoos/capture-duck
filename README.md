@@ -1,3 +1,3 @@
-# Three.js: Camera controls
+# Capture Duck
 
-In [questo articolo](https://medium.com/@gianluca.lomarco/three-js-responsive-e-viewport-resize-379f759ead77) vengono spiegati i passaggi e il funzionamento del codice.
+Follow the link to try the [game](https://capture-duck.github.io)
