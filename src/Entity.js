@@ -4,13 +4,18 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 export default class Entity extends  EventDispatcher {
 
-  constructor(resolution) {
+  constructor(url, resolution, setIndex, scale) {
     super()
+
+    this.name = 'entity';
 
     // refenrnce cell in world
     this.index = null;
+
+    // load model
     this.model = null;
     this.modelLoaded = false;
+    this.loadModel(url, setIndex, scale)
 
     // set up world resolution
     this.resolution = resolution;
@@ -26,7 +31,19 @@ export default class Entity extends  EventDispatcher {
 
   updateCellIndex() {
     this.index = this.position.x * this.resolution.x + this.position.z 
-    // if (movables) movables[this.index] = this;
+  }
+
+  updateMovable(movables, old_index) {
+    // console.log('current index ', this.index)
+    // console.log('current movable ', movables)
+    // console.log('updating movables')
+    // console.log('before delation ', movables[old_index])
+    delete movables[old_index]
+    // console.log('after delation', movables[old_index])
+    movables[this.index] = this;
+    // console.log('new movables delation', movables[this.index])
+    // console.log('current movable ', movables)
+  
   }
 
   getPosByIndex(index) {
@@ -36,56 +53,68 @@ export default class Entity extends  EventDispatcher {
     return curr_position
   }
   
-  loadModel(setPosition, randomPos = false, obstacles = null, movables = null) {
+  loadModel(url, setIndex, scale) {
     const modelLoader = new GLTFLoader();
-    modelLoader.load(this.url, (gltf) => {
+    modelLoader.load(url, (gltf) => {
       // load model
       this.model = gltf.scene;
-      this.model.scale.set(0.1, 0.1, 0.1); 
+      this.model.scale.set(scale, scale, scale); 
+
       
-      if (randomPos){
-        let newIndex = Math.floor(Math.random() * this.resolution.x * this.resolution.y);
-        // check that the cell is free
-        while (newIndex in obstacles || newIndex in movables) {
-          console.log('Cell ', newIndex, 'was not free... selcting new one')
-          newIndex = Math.floor(Math.random() * this.resolution.x * this.resolution.y);
-        }
-        let xAndz = this.getPosByIndex(newIndex)
-        setPosition.x = xAndz.x
-        setPosition.z = xAndz.z
-      }
-      this.model.position.set(setPosition.x, setPosition.y, setPosition.z); 
+      let xAndz = this.getPosByIndex(setIndex)
+      // console.log(xAndz.x)
+      // console.log(xAndz.z)
+
+      this.model.position.set(xAndz.x, 0, xAndz.z); 
       this.modelLoaded = true;
       
       // update model cell value
       // console.log('Model loaded:', this.model);
       this.updateCellIndex()
       // console.log('Cell index: ', this.index);
+      super.dispatchEvent({type: 'loaded'});
+
     }, undefined, (error) => {
       console.error(error);
     });
   }
   
-  checkEntitiesCollision(obstacles, movables) {
+  checkEntitiesCollision(obstacles, movables, removables = null, code) {
     // console.log('collision condiction ', (this.index in indices))
+    // console.log('entity name ', this.name)
+
     if (this.index in obstacles) {
       console.log('tree collision')
       return true
     }
+
     else if (this.index in movables){
-      // if not capured yet
-      if (!movables[this.index].movable) {
-        // console.log('duck collision')
-        // capture
-        movables[this.index].movable = true
-        return true
+
+      // collision between doll and movable duck
+      if (
+        (this.name == 'doll')  &&
+        (movables[this.index].name == 'duck') &&
+        (movables[this.index].movable)
+      ){
+        console.log('doll collision with duck')
+        removables.push(movables[this.index])       
       }
-      // else treat as obstacle
-      else {
-        // console.log('duck movable',  movables[this.index].movable)
+
+      // collision between static duck and wolf
+      if (
+        (this.name == 'wolf') &&
+        (movables[this.index].name == 'duck') && 
+        (!movables[this.index].movable)
+      ){
+        console.log('duck collision')
+        movables[this.index].movable = true // capture
+        movables[this.index].moveCharacter(code, obstacles, movables);
         return false
       }
+
+      return true
     }
+
     else {
       return false
     }

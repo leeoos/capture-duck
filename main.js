@@ -6,22 +6,24 @@ import fontSrc from 'three/examples/fonts/helvetiker_bold.typeface.json?url'
 import Character from './src/Character.js';
 import SemiNPC from './src/SemiNPC.js';
 import Obstacle from './src/Obstacle.js';
+import Enemy from './src/Enemy.js'
 
 // game variables
-const resolution = new THREE.Vector2(20, 20);
-const numObstacle = 20;
-const numNPC = 3;
+const map_size = 10
+const resolution = new THREE.Vector2(map_size, map_size);
+const numObstacle = 1;
+const numNPC = 1;
+const numEnemies = 1;
+const charCell = Math.floor(resolution.x / 2)
+const displace = 2 // initial space to leave for the main char
+const isMobile = window.innerWidth <= 768
+const charScale = 0.1;
+const npcScale = 0.1;
+const obsScale = 0.1;
+const enemyScale = 0.5;
 let obstacles = {};
 let movables = {};
-const initialization = {
-	mainCharPos: {
-		x: Math.floor(resolution.x / 2),
-		y: 0,
-		z: 0
-	} 
-}
-const illigalIndex = 0;
-const isMobile = window.innerWidth <= 768
+let removables = [];
 
 // load fonts
 const fontLoader = new FontLoader()
@@ -75,81 +77,6 @@ gridHelper.position.set(resolution.x / 2 - 0.5, 0, resolution.y / 2 - 0.5)
 gridHelper.material.transparent = true
 gridHelper.material.opacity = isMobile ? 0.75 : 0.3
 scene.add(gridHelper)
-
-
-let mainCharacter; // Declare mainCharacter in a broader scope
-
-// function to load a character model and return a promise
-function loadCharacter(url, resolution, position, randomizePosition, obstacles, movables) {
-  return new Promise((resolve) => {
-    const character = new Character(url, resolution, position, randomizePosition, obstacles, movables);
-    const checkModelLoaded = setInterval(() => {
-      if (character.modelLoaded) {
-        movables[character.index] = character;
-        scene.add(character.model);
-        clearInterval(checkModelLoaded);
-        resolve(character);
-      }
-    }, 100);
-  });
-}
-
-// function to load a semi-NPC model and return a promise
-function loadSemiNPC(url, resolution, position, randomizePosition, obstacles, movables) {
-  return new Promise((resolve) => {
-    const npc = new SemiNPC(url, resolution, position, randomizePosition, obstacles, movables);
-    const checkModelLoaded = setInterval(() => {
-      if (npc.modelLoaded) {
-        movables[npc.index] = npc;
-        scene.add(npc.model);
-        clearInterval(checkModelLoaded);
-        resolve(npc);
-      }
-    }, 100);
-  });
-}
-
-// function to load an obstacle model and return a promise
-function loadObstacle(url, resolution, position, randomizePosition, obstacles, movables) {
-  return new Promise((resolve) => {
-    const obstacle = new Obstacle(url, resolution, position, randomizePosition, obstacles, movables);
-    const checkModelLoaded = setInterval(() => {
-      if (obstacle.modelLoaded) {
-        obstacles[obstacle.index] = obstacle;
-        scene.add(obstacle.model);
-        clearInterval(checkModelLoaded);
-        resolve(obstacle);
-      }
-    }, 100);
-  });
-}
-
-// Load the main character first then...
-const characterUrl = '3d_models/wolf/scene.gltf';
-loadCharacter(characterUrl, resolution, initialization['mainCharPos'], false, obstacles, movables)
-  .then((character) => {
-		mainCharacter = character;
-
-    // load NPCs after the main character is loaded
-    const npcPromises = [];
-		const npcUrl = '3d_models/goose/scene.gltf';
-    for (let j = 0; j < numNPC; j++) {
-      npcPromises.push(loadSemiNPC(npcUrl, resolution, undefined, true, obstacles, movables));
-    }
-    return Promise.all(npcPromises);
-  })
-  .then(() => {
-    // load obstacles after all NPCs are loaded
-    const obstaclePromises = [];
-    for (let i = 0; i < numObstacle; i++) {
-      const treeUrl = '3d_models/tree2/scene.gltf';
-      obstaclePromises.push(loadObstacle(treeUrl, resolution, undefined, true, obstacles, movables));
-    }
-    return Promise.all(obstaclePromises);
-  })
-  .catch((error) => {
-    console.error('Error loading models:', error);
-  });
 
 // rendering sizes
 const sizes = {
@@ -206,19 +133,116 @@ controls.target.set(
 	resolution.y / 2 + (isMobile ? 0 : 2)
 )
 
-// move around
+// make a set of siutable coordinates to assigne to each model
+function generateUniqueRandomNumbers(x, y, count) {
+  if (count > (y - x + 1)) {
+    throw new Error("Count cannot be greater than the range of numbers.");
+  }
+  let numbers = Array.from({ length: y - x + 1 }, (_, i) => x + i);
+
+  // Fisher-Yates shuffle algorithm
+  for (let i = numbers.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [numbers[i], numbers[j]] = [numbers[j], numbers[i]];
+  }
+  return numbers.slice(0, count);
+}
+const numCell = numNPC + numEnemies + numObstacle 
+let freeCells = generateUniqueRandomNumbers(resolution.x * displace, resolution.x * resolution.y, numCell);
+console.log('Free cells: ', freeCells);
+
+// load objects into the scene
+function loadObjects(
+	objType, 
+	url, 
+	resolution,
+	refCell,
+	scale,
+	dictionary
+) {
+
+	const newObject = new objType(
+		url, 
+		resolution, 
+		refCell,
+		scale
+	);
+	const checkModelLoaded = setInterval(() => {
+		if (newObject.modelLoaded) {
+			dictionary[newObject.index] = newObject;
+			scene.add(newObject.model);
+			clearInterval(checkModelLoaded);
+		}
+	}, 100);
+}
+
+// load character
+const characterUrl = '3d_models/wolf/scene.gltf';
+loadObjects(Character, characterUrl, resolution, charCell, charScale, movables)
+
+// load npc
+const npcUrl = '3d_models/duck/scene.gltf';
+for (let i = 0; i < numNPC; i++) {
+	loadObjects(SemiNPC, npcUrl, resolution, freeCells[i], npcScale, movables)
+}
+
+// load enemy
+const enemyUrl = '3d_models/doll/scene.gltf';
+for (let j = numNPC; j < numNPC + numEnemies; j++) {
+	loadObjects(Enemy, enemyUrl, resolution, freeCells[j], enemyScale, movables)
+}
+
+// load obstacles
+const obstacleUrl = '3d_models/tree/scene.gltf';
+for (let k = numNPC + numEnemies ; k < numNPC + numEnemies + numObstacle; k++) {
+	loadObjects(Obstacle, obstacleUrl, resolution, freeCells[k], obsScale, obstacles)
+}
+
+let gameInterval;
+let game_status = 'paused';
+
+// move around all charaters that can be moved
+function moveEnemy() {
+  if (game_status === 'active') {
+    Enemy.executeMethodOnAllInstances(obstacles, movables, removables);
+  } else {
+    clearInterval(gameInterval); 
+  }
+}
+
 window.addEventListener('keyup', function(e){
 
-	mainCharacter.moveCharacter(e.code, obstacles, movables);
-	console.log(movables)
-	for (let key in movables) {
-		if (movables.hasOwnProperty(key)) {
-			let value = movables[key];
-			if (value.movable) {
-				value.moveCharacter(e.code, obstacles, movables);
-			}		
-			// console.log(`Key: ${key}, Value:`, value.movable);
+	if (e.code === "KeyP") {
+		if (game_status === 'active') {
+			game_status = 'paused'
+			console.log('game paused')
+			clearInterval(moveEnemy);
 		}
+		else {
+			game_status = 'active'
+			console.log('game active')
+			const gameInterval = setInterval(moveEnemy, 500);
+		}
+	}
+
+	if (game_status == 'active') {
+		// mainCharacter.moveCharacter(e.code, obstacles, movables);
+		// console.log(movables)
+		for (let index in movables) {
+			if (movables.hasOwnProperty(index)) {
+				let character = movables[index];
+				if (character.movable) {
+					character.moveCharacter(e.code, obstacles, movables);
+				}		
+			}
+		}
+		// console.log('Elements to remove ', removables)
+		removables.forEach((element) => {
+			// console.log('removing ', element)
+			scene.remove(element.model)
+			delete removables[element]; 
+		});
+
 	}
 })
 

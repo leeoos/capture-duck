@@ -4,17 +4,10 @@ import Character from './Character';
 
 export default class SemiNPC extends Character {
 
-  constructor(
-    url, 
-    resolution, 
-    setPosition = {x:0, y:0, z:0}, 
-    randomPos = false,
-    obstacles = null,
-    movables = null
-  ){
-    super(url, resolution, setPosition, randomPos, obstacles, movables);
+  constructor(url, resolution, setIndex, scale){
+    super(url, resolution, setIndex, scale);
+    this.name = 'duck';
     this.movable = false;
   }
-
 
 }

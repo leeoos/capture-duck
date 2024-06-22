@@ -4,21 +4,15 @@ import Entity from './Entity';
 
 export default class Character extends Entity {
 
-  constructor(
-    url, 
-    resolution, 
-    setPosition = {x:0, y:0, z:0}, 
-    randomPos = false,
-    obstacles = null,
-    movables = null,
-  ) {
-    super(resolution)
+  constructor(url, resolution, setIndex, scale) {
+    super(url, resolution, setIndex, scale)
 
     // load model
-    this.url = url;
-    super.loadModel(setPosition, randomPos, obstacles, movables)
+    // this.url = url;
+    // super.loadModel(setIndex)
 
     // dummy attribute
+    this.name = 'wolf';
     this.movable = true;
 
     // direction parameters
@@ -28,28 +22,28 @@ export default class Character extends Entity {
     this.LEFT = new THREE.Vector3(1,0,0);
   }
 
-  moveCharacter(keyCode, obstacles, movables){
+  moveCharacter(keyCode, obstacles, movables, removables = null){
     let new_direction;
     switch (keyCode) {
       case 'ArrowUp':
       case 'KeyW':
         new_direction = this.UP
-        this.updatePosition(new_direction, obstacles, movables)
+        this.updatePosition(new_direction, obstacles, movables, removables, keyCode)
         break
       case 'ArrowDown':
       case 'KeyS':
         new_direction  = this.DOWN
-        this.updatePosition(new_direction, obstacles, movables)
+        this.updatePosition(new_direction, obstacles, movables, removables, keyCode)
         break
       case 'ArrowLeft':
       case 'KeyA':
         new_direction = this.LEFT
-        this.updatePosition(new_direction, obstacles, movables)
+        this.updatePosition(new_direction, obstacles, movables, removables, keyCode)
         break
       case 'ArrowRight':
       case 'KeyD':
         new_direction = this.RIGHT
-        this.updatePosition(new_direction, obstacles, movables)
+        this.updatePosition(new_direction, obstacles, movables, removables, keyCode)
         break
       default:
         return
@@ -57,36 +51,31 @@ export default class Character extends Entity {
     // console.log('new direction: ', new_direction)
   }
 
-  updatePosition(direction, obstacles, movables){
+  updatePosition(direction, obstacles, movables, removables = null, code = null){
 
     const old = JSON.parse(JSON.stringify(this.position));
+    const old_index = JSON.parse(JSON.stringify(this.index));
     
     this.position.add(direction);
     super.updateCellIndex();
 
     // check collision
-    if (super.checkEntitiesCollision(obstacles, movables)) {
+    if (super.checkEntitiesCollision(obstacles, movables, removables, code)) {
       // console.log('eh eh eh collistion detected!!!')
       this.position.x = old.x;
       this.position.y = old.y;
       this.position.z = old.z;
       super.updateCellIndex()
     }
-    else {
-      if (this.position.z < 0){
-        this.position.z = old.z; //this.resolution.y - 1;
-      }
-      else if (this.position.z > this.resolution.y - 1 ){
-        this.position.z = 0;
-      }
-      if (this.position.x < 0){
-        this.position.x = old.x; //this.resolution.x - 1;
-      }
-      else if (this.position.x > this.resolution.x - 1 ){
-        this.position.x = old.x; //0;
-      }
+
+    // condictions for map edges
+    if (this.position.z < 0 || this.position.z > this.resolution.y - 1 || this.position.x < 0 || this.position.x > this.resolution.x - 1){
+      this.position.x = old.x;
+      this.position.y = old.y;
+      this.position.z = old.z;
       super.updateCellIndex()
     }
-  }
 
+    super.updateMovable(movables, old_index)
+  }
 }
