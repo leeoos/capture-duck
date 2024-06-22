@@ -12,7 +12,7 @@ import Enemy from './src/Enemy.js'
 const map_size = 10
 const resolution = new THREE.Vector2(map_size, map_size);
 const numObstacle = 1;
-const numNPC = 1;
+const numNPC = 2;
 const numEnemies = 1;
 const charCell = Math.floor(resolution.x / 2)
 const displace = 2 // initial space to leave for the main char
@@ -21,6 +21,7 @@ const charScale = 0.1;
 const npcScale = 0.1;
 const obsScale = 0.1;
 const enemyScale = 0.5;
+let score = numNPC;
 let obstacles = {};
 let movables = {};
 let removables = [];
@@ -197,6 +198,8 @@ const obstacleUrl = '3d_models/tree/scene.gltf';
 for (let k = numNPC + numEnemies ; k < numNPC + numEnemies + numObstacle; k++) {
 	loadObjects(Obstacle, obstacleUrl, resolution, freeCells[k], obsScale, obstacles)
 }
+
+// loader.addEventListener('updated', () => {});
 
 let gameInterval;
 let game_status = 'paused';

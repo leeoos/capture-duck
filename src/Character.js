@@ -28,22 +28,22 @@ export default class Character extends Entity {
       case 'ArrowUp':
       case 'KeyW':
         new_direction = this.UP
-        this.updatePosition(new_direction, obstacles, movables, removables, keyCode)
+        return this.updatePosition(new_direction, obstacles, movables, removables, keyCode)
         break
       case 'ArrowDown':
       case 'KeyS':
         new_direction  = this.DOWN
-        this.updatePosition(new_direction, obstacles, movables, removables, keyCode)
+        return this.updatePosition(new_direction, obstacles, movables, removables, keyCode)
         break
       case 'ArrowLeft':
       case 'KeyA':
         new_direction = this.LEFT
-        this.updatePosition(new_direction, obstacles, movables, removables, keyCode)
+        return this.updatePosition(new_direction, obstacles, movables, removables, keyCode)
         break
       case 'ArrowRight':
       case 'KeyD':
         new_direction = this.RIGHT
-        this.updatePosition(new_direction, obstacles, movables, removables, keyCode)
+        return this.updatePosition(new_direction, obstacles, movables, removables, keyCode)
         break
       default:
         return
@@ -58,6 +58,7 @@ export default class Character extends Entity {
     
     this.position.add(direction);
     super.updateCellIndex();
+    let updatedPos = true;
 
     // check collision
     if (super.checkEntitiesCollision(obstacles, movables, removables, code)) {
@@ -66,6 +67,7 @@ export default class Character extends Entity {
       this.position.y = old.y;
       this.position.z = old.z;
       super.updateCellIndex()
+      updatedPos = false;
     }
 
     // condictions for map edges
@@ -74,8 +76,11 @@ export default class Character extends Entity {
       this.position.y = old.y;
       this.position.z = old.z;
       super.updateCellIndex()
+      updatedPos = false;
     }
 
-    super.updateMovable(movables, old_index)
+    if (updatedPos) super.updateMovable(movables, old_index)
+    return updatedPos;
+    
   }
 }

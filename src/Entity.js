@@ -97,7 +97,8 @@ export default class Entity extends  EventDispatcher {
         (movables[this.index].movable)
       ){
         console.log('doll collision with duck')
-        removables.push(movables[this.index])       
+        removables.push(movables[this.index])  
+        super.dispatchEvent({type: 'saved'});     
       }
 
       // collision between static duck and wolf
@@ -106,12 +107,15 @@ export default class Entity extends  EventDispatcher {
         (movables[this.index].name == 'duck') && 
         (!movables[this.index].movable)
       ){
-        console.log('duck collision')
+        console.log('wolf duck collision')
         movables[this.index].movable = true // capture
-        movables[this.index].moveCharacter(code, obstacles, movables);
-        return false
+        let tryMove = movables[this.index].moveCharacter(code, obstacles, movables);
+        console.log('try move ', tryMove);
+        if (tryMove) {
+          console.log('duck moved away');
+          return false
+        }
       }
-
       return true
     }
 
@@ -119,5 +123,4 @@ export default class Entity extends  EventDispatcher {
       return false
     }
   }
-
 }
