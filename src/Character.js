@@ -8,10 +8,6 @@ export default class Character extends Entity {
   constructor(url, resolution, setIndex, scale) {
     super(url, resolution, setIndex, scale)
 
-    // load model
-    // this.url = url;
-    // super.loadModel(setIndex)
-
     // dummy attribute
     this.name = 'wolf';
     this.movable = true;
@@ -26,70 +22,8 @@ export default class Character extends Entity {
     this.head = "head_s_08";
     this.rArm = "R_forearm_twist_s_039";
     this.lArm = "L_forearm_twist_s_025";
-  }
 
-  moveCharacter(keyCode, obstacles, movables, removables = null){
-    let new_direction;
-    switch (keyCode) {
-      case 'ArrowUp':
-      case 'KeyW':
-        new_direction = this.UP
-        return this.updatePosition(new_direction, obstacles, movables, removables, keyCode)
-        break
-      case 'ArrowDown':
-      case 'KeyS':
-        new_direction  = this.DOWN
-        return this.updatePosition(new_direction, obstacles, movables, removables, keyCode)
-        break
-      case 'ArrowLeft':
-      case 'KeyA':
-        new_direction = this.LEFT
-        return this.updatePosition(new_direction, obstacles, movables, removables, keyCode)
-        break
-      case 'ArrowRight':
-      case 'KeyD':
-        new_direction = this.RIGHT
-        return this.updatePosition(new_direction, obstacles, movables, removables, keyCode)
-        break
-      default:
-        return
-    }
-    // console.log('new direction: ', new_direction)
-  }
-
-  updatePosition(direction, obstacles, movables, removables = null, code = null){
-
-    const old = JSON.parse(JSON.stringify(this.position));
-    const old_index = JSON.parse(JSON.stringify(this.index));
-    
-    this.position.add(direction);
-    super.updateCellIndex();
-    let updatedPos = true;
-
-    // check collision
-    if (super.checkEntitiesCollision(obstacles, movables, removables, code)) {
-      // console.log('eh eh eh collistion detected!!!')
-      this.position.x = old.x;
-      this.position.y = old.y;
-      this.position.z = old.z;
-      super.updateCellIndex()
-      updatedPos = false;
-    }
-
-    // condictions for map edges
-    if (this.position.z < 0 || this.position.z > this.resolution.y - 1 || this.position.x < 0 || this.position.x > this.resolution.x - 1){
-      this.position.x = old.x;
-      this.position.y = old.y;
-      this.position.z = old.z;
-      super.updateCellIndex()
-      updatedPos = false;
-    }
-
-    if (updatedPos) {
-      super.updateMovable(movables, old_index);
-      this.animate();
-    } 
-    return updatedPos;
+    this.animationRunning = false;
   }
 
   animateArms() {
@@ -132,10 +66,76 @@ export default class Character extends Entity {
 
     leftArmTween.start();
     rightArmTween.start();
+    this.animationRunning = true;
   }
 
-  animate() {
-    this.animateArms()
+  moveCharacter(keyCode, obstacles, movables, removables = null){
+
+    // set new direction
+    let new_direction;
+    switch (keyCode) {
+      case 'ArrowUp':
+      case 'KeyW':
+        new_direction = this.UP
+        break
+      case 'ArrowDown':
+      case 'KeyS':
+        new_direction  = this.DOWN
+        break
+      case 'ArrowLeft':
+      case 'KeyA':
+        new_direction = this.LEFT
+        break
+      case 'ArrowRight':
+      case 'KeyD':
+        new_direction = this.RIGHT
+        break
+      default:
+        return
+    }
+    // console.log('new direction: ', new_direction)
+    let success = this.updatePosition(new_direction, obstacles, movables, removables, keyCode)
+    if (success && !this.animationRunning) {
+      super.animate()
+    }
+    // setTimeout(() => {
+    //   super.stopAnimation();
+    // }, 1000); // Adjust the timeout based on your animation duration
+    return success;
+  }
+
+  updatePosition(direction, obstacles, movables, removables = null, code = null){
+
+    const old = JSON.parse(JSON.stringify(this.position));
+    const old_index = JSON.parse(JSON.stringify(this.index));
+    
+    this.position.add(direction);
+    super.updateCellIndex();
+    let updatedPos = true;
+
+    // check collision
+    if (super.checkEntitiesCollision(obstacles, movables, removables, code)) {
+      // console.log('eh eh eh collistion detected!!!')
+      this.position.x = old.x;
+      this.position.y = old.y;
+      this.position.z = old.z;
+      super.updateCellIndex()
+      updatedPos = false;
+    }
+
+    // condictions for map edges
+    if (this.position.z < 0 || this.position.z > this.resolution.y - 1 || this.position.x < 0 || this.position.x > this.resolution.x - 1){
+      this.position.x = old.x;
+      this.position.y = old.y;
+      this.position.z = old.z;
+      super.updateCellIndex()
+      updatedPos = false;
+    }
+
+    if (updatedPos) {
+      super.updateMovable(movables, old_index);
+    } 
+    return updatedPos;
   }
 
 }

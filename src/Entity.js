@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import {EventDispatcher} from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import TWEEN from '@tweenjs/tween.js';
 
 export default class Entity extends  EventDispatcher {
 
@@ -19,6 +20,8 @@ export default class Entity extends  EventDispatcher {
 
     // set up world resolution
     this.resolution = resolution;
+
+    this.animationRunning = false
   }
 
   get position() {
@@ -34,14 +37,9 @@ export default class Entity extends  EventDispatcher {
   }
 
   updateMovable(movables, old_index) {
-    // console.log('current index ', this.index)
-    // console.log('current movable ', movables)
-    // console.log('updating movables')
-    // console.log('before delation ', movables[old_index])
+    // console.log('old movable ', movables)
     delete movables[old_index]
-    // console.log('after delation', movables[old_index])
     movables[this.index] = this;
-    // console.log('new movables delation', movables[this.index])
     // console.log('current movable ', movables)
   
   }
@@ -98,7 +96,7 @@ export default class Entity extends  EventDispatcher {
       ){
         console.log('doll collision with duck')
         removables.push(movables[this.index])  
-        super.dispatchEvent({type: 'saved'});     
+        delete movables[this.index]   
       }
 
       // collision between static duck and wolf
@@ -123,4 +121,14 @@ export default class Entity extends  EventDispatcher {
       return false
     }
   }
+
+  animate() {
+    if (this.name === 'wolf') this.animateArms()
+  }
+
+  stopAnimation() {
+    TWEEN.removeAll();
+    this.animationRunning = false; // Reset flag
+  }
+
 }
