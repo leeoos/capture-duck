@@ -29,8 +29,7 @@ export default class Enemy extends Character {
 
   }
 
-  static executeMethodOnAllInstances(obstacles, movables, removables) {
+  static executeMoveOnAllInstances(obstacles, movables, removables) {
     Enemy.instances.forEach(instance => instance.moveAround(obstacles, movables, removables));
   }
-
 }

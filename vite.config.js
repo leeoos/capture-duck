@@ -4,4 +4,5 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
 	plugins: [glsl()],
+	// base: 'leeoos.github.io'
 })

@@ -11,6 +11,12 @@ export default class Character extends Entity {
     // dummy attribute
     this.name = 'wolf';
     this.movable = true;
+    this.captured = false;
+
+    // monitor first capture
+    this.isFirst = true;
+    this.prey = null;
+    this.preyCounter = 0
 
     // direction parameters
     this.UP = new THREE.Vector3(0,0,1);
@@ -69,38 +75,49 @@ export default class Character extends Entity {
     this.animationRunning = true;
   }
 
-  moveCharacter(keyCode, obstacles, movables, removables = null){
+  moveCharacter(keyCode, obstacles, movables, removables){
 
     // set new direction
     let new_direction;
+    let rotation_angle;
     switch (keyCode) {
       case 'ArrowUp':
       case 'KeyW':
-        new_direction = this.UP
-        break
+        new_direction = this.UP;
+        rotation_angle = 0;
+        break;
       case 'ArrowDown':
       case 'KeyS':
-        new_direction  = this.DOWN
-        break
+        new_direction = this.DOWN;
+        rotation_angle = Math.PI;
+        break;
       case 'ArrowLeft':
       case 'KeyA':
-        new_direction = this.LEFT
-        break
+        new_direction = this.LEFT;
+        rotation_angle = Math.PI / 2;
+        break;
       case 'ArrowRight':
       case 'KeyD':
-        new_direction = this.RIGHT
-        break
+        new_direction = this.RIGHT;
+        rotation_angle = -Math.PI / 2;
+        break;
       default:
-        return
+        return;
     }
-    // console.log('new direction: ', new_direction)
-    let success = this.updatePosition(new_direction, obstacles, movables, removables, keyCode)
-    if (success && !this.animationRunning) {
-      super.animate()
+
+    let success = this.updatePosition(new_direction, obstacles, movables, removables, keyCode);
+
+    if (success) {
+      // Update the model's rotation
+      if (this.name === 'doll' || this.name === 'duck') {
+        this.model.rotation.y = rotation_angle;
+      }
+
+      if (!this.animationRunning) {
+        super.animate();
+      }
     }
-    // setTimeout(() => {
-    //   super.stopAnimation();
-    // }, 1000); // Adjust the timeout based on your animation duration
+
     return success;
   }
 
@@ -110,6 +127,7 @@ export default class Character extends Entity {
     const old_index = JSON.parse(JSON.stringify(this.index));
     
     this.position.add(direction);
+    
     super.updateCellIndex();
     let updatedPos = true;
 
@@ -134,6 +152,10 @@ export default class Character extends Entity {
 
     if (updatedPos) {
       super.updateMovable(movables, old_index);
+      if (this.name === 'wolf' && this.preyCounter > 0) {
+        this.prey.model.position.x = this.position.x;
+        this.prey.model.position.z = this.position.z;
+      }
     } 
     return updatedPos;
   }

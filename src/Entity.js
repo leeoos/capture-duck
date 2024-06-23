@@ -18,6 +18,14 @@ export default class Entity extends  EventDispatcher {
     this.modelLoaded = false;
     this.loadModel(url, setIndex, scale)
 
+    // possile orientations
+    this.orientations = [
+      0,
+      Math.PI / 2,
+      Math.PI,
+      -Math.PI / 2
+    ]
+
     // set up world resolution
     this.resolution = resolution;
 
@@ -28,18 +36,26 @@ export default class Entity extends  EventDispatcher {
     return this.model.position
   }
 
+  get rotation() {
+    return this.model.rotation
+  }
+
   get cellindex() {
     return this.index
   }
 
   updateCellIndex() {
-    this.index = this.position.x * this.resolution.x + this.position.z 
+    // the order is super important
+    this.index = this.position.z * this.resolution.x + this.position.x
   }
 
   updateMovable(movables, old_index) {
     // console.log('old movable ', movables)
-    delete movables[old_index]
-    movables[this.index] = this;
+    // update only for wolf or doll (?)
+    if (!this.capured) {
+      delete movables[old_index]
+      movables[this.index] = this;
+    }
     // console.log('current movable ', movables)
   
   }
@@ -54,10 +70,19 @@ export default class Entity extends  EventDispatcher {
   loadModel(url, setIndex, scale) {
     const modelLoader = new GLTFLoader();
     modelLoader.load(url, (gltf) => {
+
       // load model
       this.model = gltf.scene;
       this.model.scale.set(scale, scale, scale); 
 
+      if (this.name === 'doll' || this.name === 'duck') {
+        const randomIndex = Math.floor(Math.random() * this.orientations.length);
+        this.model.rotation.set(
+          0, 
+          this.orientations[randomIndex], 
+          0
+        )
+      }
       
       let xAndz = this.getPosByIndex(setIndex)
       // console.log(xAndz.x)
@@ -77,7 +102,7 @@ export default class Entity extends  EventDispatcher {
     });
   }
   
-  checkEntitiesCollision(obstacles, movables, removables = null, code) {
+  checkEntitiesCollision(obstacles, movables, removables = null) {
     // console.log('collision condiction ', (this.index in indices))
     // console.log('entity name ', this.name)
 
@@ -90,36 +115,59 @@ export default class Entity extends  EventDispatcher {
 
       // collision between doll and movable duck
       if (
-        (this.name == 'doll')  &&
-        (movables[this.index].name == 'duck') &&
+        (this.name === 'doll')  &&
+        (movables[this.index].name == 'wolf') &&
         (movables[this.index].movable)
       ){
-        console.log('doll collision with duck')
-        removables.push(movables[this.index])  
-        delete movables[this.index]   
+        console.log('doll collision with wolf');
+        if (movables[this.index].preyCounter > 0) {
+          movables[this.index].preyCounter -= 1;
+        }
+        // removables.push(movables[this.index])  
+        // delete movables[this.index]   
       }
 
-      // collision between static duck and wolf
+      // collision between  duck and wolf
       if (
-        (this.name == 'wolf') &&
+        (this.name === 'wolf') &&
         (movables[this.index].name == 'duck') && 
-        (!movables[this.index].movable)
+        (!movables[this.index].capured)
       ){
-        console.log('wolf duck collision')
-        movables[this.index].movable = true // capture
-        let tryMove = movables[this.index].moveCharacter(code, obstacles, movables);
-        console.log('try move ', tryMove);
-        if (tryMove) {
-          console.log('duck moved away');
-          return false
+        console.log('wolf collision duck')
+        movables[this.index].movable = true 
+        movables[this.index].capured = true // captured
+        this.preyCounter += 1
+
+        if (this.isFirst){
+          movables[this.index].updateList(movables[this.index])
+          this.prey = movables[this.index]
+          movables[this.index].model.position.x = this.position.x
+          movables[this.index].model.position.y = 1.2
+          movables[this.index].model.position.z = this.position.z
+          movables[this.index].rotateOnSpot()
+          this.isFirst = false;
+          return false;
         }
+
+        else if (!this.isFirst) {
+          removables.push(movables[this.index])  
+          delete movables[this.index];
+        }
+        return false
       }
+      // in this case do not consider collision
+      else if (
+        (this.name === 'wolf') &&
+        (movables[this.index].name === 'duck') && 
+        (movables[this.index].capured)
+      ){
+        return false
+      }
+
       return true
     }
+    return false
 
-    else {
-      return false
-    }
   }
 
   animate() {
