@@ -144,6 +144,7 @@ export default class Entity extends  EventDispatcher {
           movables[this.index].model.position.x = this.position.x
           movables[this.index].model.position.y = 1.2
           movables[this.index].model.position.z = this.position.z
+          movables[this.index].model.scale.set(0.06, 0.06, 0.06)
           movables[this.index].rotateOnSpot()
           this.isFirst = false;
           return false;

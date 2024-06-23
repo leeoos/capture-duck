@@ -11,11 +11,11 @@ import Enemy from './src/Enemy.js'
 
 
 // game variables
-const map_size = 10
+const map_size = 21
 const resolution = new THREE.Vector2(map_size, map_size);
-const numObstacle = 3;
-const numNPC = 2;
-const numEnemies = 1;
+const numObstacle = 30;
+const numNPC = 5;
+const numEnemies = 10;
 const charCell = Math.floor(resolution.x / 2)
 const displace = 2 // initial space to leave for the main char
 const isMobile = window.innerWidth <= 768
@@ -64,19 +64,51 @@ const scene = new THREE.Scene()
 scene.background = new THREE.Color(params.fogColor)
 scene.fog = new THREE.Fog(params.fogColor, 5, 40)
 
-// add plane
-const planeGeometry = new THREE.PlaneGeometry(resolution.x, resolution.y,resolution.x, resolution.y);
-planeGeometry.rotateX(-Math.PI * 0.5)
-const planeMaterial = new THREE.MeshStandardMaterial({
-	color: params.groundColor[1],
-})
-const plane = new THREE.Mesh(planeGeometry, planeMaterial)
-plane.position.x = resolution.x / 2  - (1/2);
-plane.position.z = resolution.y / 2 - (1/2);  
-plane.receiveShadow = true
-scene.add(plane)
+// add terrain
+const vertexShader = `
+  varying vec2 vUv;
 
-// add small white and dark green spots
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const fragmentShader = `
+  uniform vec3 color;
+  uniform vec3 fadeColor;
+  varying vec2 vUv;
+
+  void main() {
+    float dist = distance(vUv, vec2(0.5, 0.5));
+    float fade = smoothstep(0.4, 0.5, dist);
+    vec3 finalColor = mix(color, fadeColor, fade);
+    gl_FragColor = vec4(finalColor, 1.0);
+  }
+`;
+
+const uniforms = {
+  color: { value: new THREE.Color(0x2F4F2F) }, // Plane color
+  fadeColor: { value: new THREE.Color('black') } // Fade to black
+};
+
+const planeMaterial = new THREE.ShaderMaterial({
+  uniforms: uniforms,
+  vertexShader: vertexShader,
+  fragmentShader: fragmentShader,
+  side: THREE.DoubleSide
+});
+
+// Create the plane with the shader material
+const planeGeometry = new THREE.PlaneGeometry(resolution.x, resolution.y, resolution.x, resolution.y);
+planeGeometry.rotateX(-Math.PI * 0.5);
+const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+plane.position.x = resolution.x / 2 - 0.5;
+plane.position.z = resolution.y / 2 - 0.5;
+plane.receiveShadow = true;
+scene.add(plane);
+
+
 // add small white and dark green spots
 const spotColors = [0xffffff, 0x006400]; // white and dark green colors
 const spotSize = 0.02;
@@ -113,23 +145,34 @@ for (let i = 0; i < 300; i++) {
 // const axesHelper = new THREE.AxesHelper(3)
 // scene.add(axesHelper)
 
-// DEBUG: set up OrbitControls
-// const controls = new OrbitControls(camera, renderer.domElement)
-// controls.enableDamping = true
-// controls.target.set(
-// 	resolution.x / 2 - 2,
-// 	0,
-// 	resolution.y / 2 + (isMobile ? 0 : 2)
-// )
-
 
 // add moon
-const moonGeometry = new THREE.SphereGeometry(2, 32, 32); 
-const moonMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0xd3d3d3, // light grey color
-    emissive: 0xd3d3d3, // make the moon emissive
-    emissiveIntensity: 1.5 // increase the emissive intensity
+// const moonGeometry = new THREE.SphereGeometry(2, 32, 32); 
+// const moonMaterial = new THREE.MeshStandardMaterial({ 
+//     color: 0xd3d3d3, // light grey color
+//     emissive: 0xd3d3d3, // make the moon emissive
+//     emissiveIntensity: 1.5 // increase the emissive intensity
+// });
+// const moon = new THREE.Mesh(moonGeometry, moonMaterial);
+// moon.position.set(0, 8, resolution.y);
+// scene.add(moon);
+
+// Load the moon texture and bump map
+const textureLoader = new THREE.TextureLoader();
+const moonTexture = textureLoader.load('./assets/moon.jpg');
+const moonBumpMap = textureLoader.load('./assets/bump.jpg'); // Optional
+
+// Create the moon material with texture and bump map
+const moonMaterial = new THREE.MeshStandardMaterial({
+  map: moonTexture,
+  bumpMap: moonBumpMap,  // Optional
+  bumpScale: 0.05,  // Adjust the bump scale to enhance craters
 });
+
+// Create the moon geometry
+const moonGeometry = new THREE.SphereGeometry(2, 32, 32);
+
+// Create the moon mesh with the geometry and material
 const moon = new THREE.Mesh(moonGeometry, moonMaterial);
 moon.position.set(0, 8, resolution.y);
 scene.add(moon);
@@ -156,11 +199,11 @@ const camera = new THREE.PerspectiveCamera(fov, aspectRatio, 0.1, 1000);
 const midX = resolution.x / 2 - 0.5;
 const midZ = resolution.y / 2 - 0.5;
 // Set the camera position above and behind the main character
-camera.position.set(midX, 7, 13);
+camera.position.set(midX, 10, resolution.x + 3);
 // Adjust the camera to look towards the middle of the plane
 camera.lookAt(new THREE.Vector3(midX, 0, midZ));
 
-function transitionToThirdPerson(mainCharacter, firstTime) {
+function transitionToThirdPerson(mainCharacter, setFollow) {
 	if (mainCharacter && mainCharacter.model) {
 		// get char position
 		const charPosition = mainCharacter.model.position;
@@ -171,7 +214,7 @@ function transitionToThirdPerson(mainCharacter, firstTime) {
 		const cameraOffset = charDirection.clone().multiplyScalar(-3).add(new THREE.Vector3(0, 2, 0));
 		const cameraPosition = charPosition.clone().add(cameraOffset);
 		
-		if (firstTime) {
+		if (setFollow) {
 			const currentCameraPosition = camera.position.clone();
 			const currentCameraLookAt = new THREE.Vector3();
 			camera.getWorldDirection(currentCameraLookAt);
@@ -230,6 +273,15 @@ function generateUniqueRandomNumbers(x, y, count) {
 const numCell = numNPC + numEnemies + numObstacle 
 let freeCells = generateUniqueRandomNumbers(resolution.x * displace, (resolution.x * resolution.y) - 1, numCell);
 console.log('Free cells: ', freeCells);
+
+// DEBUG: set up OrbitControls
+const controls = new OrbitControls(camera, renderer.domElement)
+controls.enableDamping = true
+controls.target.set(
+	resolution.x / 2 - 2,
+	0,
+	resolution.y / 2 + (isMobile ? 0 : 2)
+)
 
 
 // load objects into the scene
@@ -323,6 +375,7 @@ window.addEventListener('keyup', function(e){
 		if (game_status === 'active') {
 			game_status = 'paused'
 			console.log('game paused')
+			controls.enabled = true
 			clearInterval(moveALL);
 			character.stopAnimation()
 			if (character.prey) character.prey.stopAnimation()
@@ -333,6 +386,8 @@ window.addEventListener('keyup', function(e){
 				if (character.prey) character.prey.rotateOnSpot()
 			}
 			console.log('game active');
+			controls.enabled = false;
+			setFollow = true;
 			const gameInterval = setInterval(moveALL, 500);
 		}
 	}
@@ -356,7 +411,7 @@ window.addEventListener('keyup', function(e){
 // frame loop
 function tic() {
 	TWEEN.update();
-	// controls.update();
+	if(controls.enabled) controls.update();
 	renderer.render(scene, camera);
 	requestAnimationFrame(tic);
 }

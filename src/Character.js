@@ -112,6 +112,7 @@ export default class Character extends Entity {
       if (this.name === 'doll' || this.name === 'duck') {
         this.model.rotation.y = rotation_angle;
       }
+      // this.model.rotation.y = rotation_angle;
 
       if (!this.animationRunning) {
         super.animate();
