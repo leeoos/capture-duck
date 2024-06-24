@@ -120,11 +120,9 @@ export default class Entity extends  EventDispatcher {
         (movables[this.index].movable)
       ){
         console.log('doll collision with wolf');
-        if (movables[this.index].preyCounter > 0) {
+        if (movables[this.index].prey) {
           movables[this.index].preyCounter -= 1;
         }
-        // removables.push(movables[this.index])  
-        // delete movables[this.index]   
       }
 
       // collision between  duck and wolf
@@ -139,6 +137,7 @@ export default class Entity extends  EventDispatcher {
         this.preyCounter += 1
 
         if (this.isFirst){
+          console.log('capture a new duck')
           movables[this.index].updateList(movables[this.index])
           this.prey = movables[this.index]
           movables[this.index].model.position.x = this.position.x
@@ -164,11 +163,9 @@ export default class Entity extends  EventDispatcher {
       ){
         return false
       }
-
       return true
     }
     return false
-
   }
 
   animate() {

@@ -62,9 +62,9 @@ export default class SemiNPC extends Character {
   updateList(instance) {
     const index = SemiNPC.instances.indexOf(instance);
     if (index > -1) {
-      console.log('before', SemiNPC.instances)
+      // console.log('before', SemiNPC.instances)
       SemiNPC.instances.splice(index, 1);
-      console.log('after', SemiNPC.instances)
+      // console.log('after', SemiNPC.instances)
 
     }
   }

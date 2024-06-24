@@ -11,11 +11,11 @@ import Enemy from './src/Enemy.js'
 
 
 // game variables
-const map_size = 21
+const map_size = 41;
 const resolution = new THREE.Vector2(map_size, map_size);
-const numObstacle = 30;
-const numNPC = 5;
-const numEnemies = 10;
+const numObstacle = 70;
+const numNPC = 7;
+const numEnemies = 15;
 const charCell = Math.floor(resolution.x / 2)
 const displace = 2 // initial space to leave for the main char
 const isMobile = window.innerWidth <= 768
@@ -29,10 +29,12 @@ let obstacles = {};
 let movables = {};
 let removables = [];
 let setFollow = true;
-let score = 1000; // dummy initialization
+let lives = 1; // dummy initialization
 let gameInterval;
 let game_status = 'paused';
-let POV = "far"
+let goal = (resolution.x - 1) * (resolution.x) + Math.floor(resolution.x /2) 
+let occasions = numNPC;
+// console.log('goal ', goal)
 
 // load fonts
 const fontLoader = new FontLoader()
@@ -129,6 +131,20 @@ for (let i = 0; i < 300; i++) {
     scene.add(spot);
 }
 
+// add goal cell
+const squareSize = 1; // Size of the square
+const squareGeometry = new THREE.PlaneGeometry(squareSize, squareSize);
+const squareMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide});
+const square = new THREE.Mesh(squareGeometry, squareMaterial);
+square.rotation.x = -Math.PI / 2; // Rotate to lay flat
+square.position.set(
+	Math.floor((resolution.x - 1) / 2), 
+	0.01, 
+	resolution.x -1
+); 
+scene.add(square);
+
+
 // DEBUG: set up grid helper for development
 // const gridHelper = new THREE.GridHelper(
 // 	resolution.x,
@@ -145,34 +161,20 @@ for (let i = 0; i < 300; i++) {
 // const axesHelper = new THREE.AxesHelper(3)
 // scene.add(axesHelper)
 
-
-// add moon
-// const moonGeometry = new THREE.SphereGeometry(2, 32, 32); 
-// const moonMaterial = new THREE.MeshStandardMaterial({ 
-//     color: 0xd3d3d3, // light grey color
-//     emissive: 0xd3d3d3, // make the moon emissive
-//     emissiveIntensity: 1.5 // increase the emissive intensity
-// });
-// const moon = new THREE.Mesh(moonGeometry, moonMaterial);
-// moon.position.set(0, 8, resolution.y);
-// scene.add(moon);
-
-// Load the moon texture and bump map
+// load the moon texture and bump map
 const textureLoader = new THREE.TextureLoader();
 const moonTexture = textureLoader.load('./assets/moon.jpg');
-const moonBumpMap = textureLoader.load('./assets/bump.jpg'); // Optional
+const moonBumpMap = textureLoader.load('./assets/bump.jpg'); 
 
-// Create the moon material with texture and bump map
+// create the moon material with texture and bump map
 const moonMaterial = new THREE.MeshStandardMaterial({
   map: moonTexture,
-  bumpMap: moonBumpMap,  // Optional
-  bumpScale: 0.05,  // Adjust the bump scale to enhance craters
+  bumpMap: moonBumpMap, 
+  bumpScale: 0.05,  
 });
 
-// Create the moon geometry
+// add moon 
 const moonGeometry = new THREE.SphereGeometry(2, 32, 32);
-
-// Create the moon mesh with the geometry and material
 const moon = new THREE.Mesh(moonGeometry, moonMaterial);
 moon.position.set(0, 8, resolution.y);
 scene.add(moon);
@@ -195,14 +197,12 @@ const sizes = {
 const fov = 70;
 const aspectRatio = sizes.width / sizes.height;
 const camera = new THREE.PerspectiveCamera(fov, aspectRatio, 0.1, 1000);
-// Calculate the middle of the plane
 const midX = resolution.x / 2 - 0.5;
 const midZ = resolution.y / 2 - 0.5;
-// Set the camera position above and behind the main character
-camera.position.set(midX, 10, resolution.x + 3);
-// Adjust the camera to look towards the middle of the plane
+camera.position.set(midX, 10, resolution.x + (resolution.x * 0.2));
 camera.lookAt(new THREE.Vector3(midX, 0, midZ));
 
+// set third person view
 function transitionToThirdPerson(mainCharacter, setFollow) {
 	if (mainCharacter && mainCharacter.model) {
 		// get char position
@@ -341,8 +341,8 @@ function moveALL() {
 }
 
 function gameOver() {
-	console.log('score ', score)
-	if (score <= 0) {
+	console.log('lives ', lives)
+	if (lives <= 0) {
 		console.log('game over');
 		game_status = 'game over';
 		clearInterval(moveALL);
@@ -351,11 +351,32 @@ function gameOver() {
 
 const checkStop = setInterval(gameOver, 500)
 
+// gui elements
+const livesElement = document.getElementById('Lives');
+const scoreElement = document.getElementById('Score');
+
+// Function to update the GUI
+function updateGUI() {
+  livesElement.innerText = lives;
+  if (character && character.prey) {
+    scoreElement.innerText = `${character.preyCounter}/${numNPC}`;
+  } else {
+    scoreElement.innerText = `${0}/${numNPC}`;;
+  }
+}
+
+
 window.addEventListener('keyup', function(e){
 
 	// reset function
 	if (e.code === "KeyR") {
 		location.reload();
+	}
+
+	// stop condiction
+	if (lives <= 0 || game_status === 'game ended') {
+		clearInterval(moveALL);
+		return;
 	}
 
 	// charater status
@@ -365,10 +386,20 @@ window.addEventListener('keyup', function(e){
 		characterSet = true;
 	}
 
-	// stop condiction
-	if (score <= 0) {
-		clearInterval(moveALL);
-		return;
+	// complete and exit
+	if (e.code === "KeyG" ){
+		console.log('char index ', character.index)
+		console.log('goal ', goal)
+		console.log(character.index === goal)
+		if (character.index === goal && character.prey){
+			console.log('game ended! ')
+			console.log('score ', character.preyCounter)
+			game_status = 'game ended';
+			controls.enabled = true
+			character.stopAnimation()
+			clearInterval(moveALL);
+			return;
+		}
 	}
 
 	if (e.code === "KeyP") {
@@ -381,7 +412,7 @@ window.addEventListener('keyup', function(e){
 			if (character.prey) character.prey.stopAnimation()
 		}
 		else {
-			if (score > 0) {
+			if (lives > 0) {
 				game_status = 'active';
 				if (character.prey) character.prey.rotateOnSpot()
 			}
@@ -393,19 +424,34 @@ window.addEventListener('keyup', function(e){
 	}
 
 	// console.log(movables[charCell])
-	if (game_status == 'active' && score > 0) {
-		character.moveCharacter(e.code, obstacles, movables, removables);
+	if (game_status == 'active' && lives > 0) {
 		transitionToThirdPerson(character, setFollow);
 		setFollow = false; // avoid camera transition
-		if (!character.isFirst) score = character.preyCounter
+		character.moveCharacter(e.code, obstacles, movables, removables);
+		console.log('prey counter ', character.preyCounter)
+		if (character.prey) {
+			lives = character.preyCounter
+			if(character.preyCounter === 0) {
+				console.log('removing little duck');
+				scene.remove(character.prey.model);
+				character.isFirst = true;
+				character.prey = null;
+				occasions -= 1; // only the one rotating will remain
+				console.log('occasions ', occasions)
+				if (occasions > 0) lives = 1;
+			}
+		}
 
 		// console.log('Elements to remove ', removables)
 		removables.forEach((element) => {
 			// console.log('removing ', element)
 			scene.remove(element.model);
 			delete removables[element]; 
+			occasions -= 1; // only the one rotating will remain
 		});
 	}
+
+	updateGUI()
 });
 
 // frame loop
