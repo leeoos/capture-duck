@@ -83,6 +83,14 @@ export default class Entity extends  EventDispatcher {
           0
         )
       }
+
+      if (this.name === 'portal') {
+        this.model.rotation.set(
+          0,
+          Math.PI /4,
+          0
+        )
+      }
       
       let xAndz = this.getPosByIndex(setIndex)
       // console.log(xAndz.x)
@@ -97,6 +105,8 @@ export default class Entity extends  EventDispatcher {
       // console.log('Cell index: ', this.index);
       super.dispatchEvent({type: 'loaded'});
 
+      if (this.name === 'wolf') this.animationSetUp();
+
     }, undefined, (error) => {
       console.error(error);
     });
@@ -107,7 +117,7 @@ export default class Entity extends  EventDispatcher {
     // console.log('entity name ', this.name)
 
     if (this.index in obstacles) {
-      console.log('tree collision')
+      // console.log('tree collision')
       return true
     }
 
@@ -131,13 +141,14 @@ export default class Entity extends  EventDispatcher {
         (movables[this.index].name == 'duck') && 
         (!movables[this.index].capured)
       ){
-        console.log('wolf collision duck')
+        // console.log('wolf collision duck')
         movables[this.index].movable = true 
         movables[this.index].capured = true // captured
         this.preyCounter += 1
+        this.occasions -= 1
 
         if (this.isFirst){
-          console.log('capture a new duck')
+          // console.log('capture a new duck')
           movables[this.index].updateList(movables[this.index])
           this.prey = movables[this.index]
           movables[this.index].model.position.x = this.position.x
@@ -168,13 +179,13 @@ export default class Entity extends  EventDispatcher {
     return false
   }
 
-  animate() {
-    if (this.name === 'wolf') this.animateArms()
-  }
+  // animate() {
+  //   if (this.name === 'wolf') this.animateArms()
+  // }
 
   stopAnimation() {
     TWEEN.removeAll();
-    this.animationRunning = false; // Reset flag
+    this.animationRunning = false; // reset flag
   }
 
 }

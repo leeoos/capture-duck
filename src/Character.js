@@ -12,6 +12,7 @@ export default class Character extends Entity {
     this.name = 'wolf';
     this.movable = true;
     this.captured = false;
+    this.occasions = 0;
 
     // monitor first capture
     this.isFirst = true;
@@ -24,55 +25,17 @@ export default class Character extends Entity {
     this.RIGHT = new THREE.Vector3(-1,0,0);
     this.LEFT = new THREE.Vector3(1,0,0);
 
-    // objaect componets
-    this.head = "head_s_08";
-    this.rArm = "R_forearm_twist_s_039";
-    this.lArm = "L_forearm_twist_s_025";
+    // animation setup
+    this.currentLeftTween = null
+    this.swingLeftForward = null
+    this.swingLeftBackward = null
+
+    this.currentRightTween = null
+    this.swingRightForward = null
+    this.swingRightBackward = null
 
     this.animationRunning = false;
-  }
-
-  animateArms() {
-
-    let leftArm = this.model.getObjectByName(this.lArm)
-    let rightArm = this.model.getObjectByName(this.rArm)
-
-	if (!leftArm || !rightArm) {
-			console.error('Arm bones not found!');
-			return;
-	}
-
-	const initialRotationLeft = { x: leftArm.rotation.x, y: leftArm.rotation.y, z: leftArm.rotation.z };
-	const targetRotationLeft = { x: Math.PI / 4, y: leftArm.rotation.y, z: leftArm.rotation.z };
-
-	const initialRotationRight = { x: rightArm.rotation.x, y: rightArm.rotation.y, z: rightArm.rotation.z };
-	const targetRotationRight = { x: -Math.PI / 4, y: rightArm.rotation.y, z: rightArm.rotation.z };
-
-	const leftArmTween = new TWEEN.Tween(initialRotationLeft)
-			.to(targetRotationLeft, 1000)
-			.easing(TWEEN.Easing.Quadratic.InOut)
-			.onUpdate(() => {
-					leftArm.rotation.x = initialRotationLeft.x;
-					leftArm.rotation.y = initialRotationLeft.y;
-					leftArm.rotation.z = initialRotationLeft.z;
-			})
-			.yoyo(true)
-			.repeat(Infinity);
-
-	const rightArmTween = new TWEEN.Tween(initialRotationRight)
-			.to(targetRotationRight, 1000)
-			.easing(TWEEN.Easing.Quadratic.InOut)
-			.onUpdate(() => {
-					rightArm.rotation.x = initialRotationRight.x;
-					rightArm.rotation.y = initialRotationRight.y;
-					rightArm.rotation.z = initialRotationRight.z;
-			})
-			.yoyo(true)
-			.repeat(Infinity);
-
-    leftArmTween.start();
-    rightArmTween.start();
-    this.animationRunning = true;
+    this.firstStep = true;
   }
 
   moveCharacter(keyCode, obstacles, movables, removables){
@@ -114,11 +77,10 @@ export default class Character extends Entity {
       }
       // this.model.rotation.y = rotation_angle;
 
-      if (!this.animationRunning) {
-        super.animate();
+      if (!this.animationRunning && this.name === 'wolf') {
+        this.swingArms();
       }
     }
-
     return success;
   }
 
@@ -159,6 +121,69 @@ export default class Character extends Entity {
       }
     } 
     return updatedPos;
+  }
+
+  animationSetUp() {
+    // left shoulder
+    let leftShoulder = this.model.getObjectByName('L_shoulder_s_00');
+
+    this.swingLeftForward = new TWEEN.Tween({ rotation: Math.PI })
+    .to({ rotation: Math.PI / 4 }, 1000)
+    .onUpdate(({ rotation }) => {
+        if (leftShoulder) leftShoulder.rotation.x = rotation;
+    });
+
+    this.swingLeftBackward = new TWEEN.Tween({ rotation: Math.PI / 4 })
+    .to({ rotation: Math.PI }, 1000)
+    .onUpdate(({ rotation }) => {
+        if (leftShoulder) leftShoulder.rotation.x = rotation;
+    });
+
+    this.currentLeftTween = 'backward';
+
+    // right shoulder
+    let rightShoulder = this.model.getObjectByName('R_shoulder_s_037');
+
+    this.swingRightForward = new TWEEN.Tween({ rotation:  -Math.PI / 4 })
+    .to({ rotation: 0 }, 1000)
+    .onUpdate(({ rotation }) => {
+        if (rightShoulder) rightShoulder.rotation.x = rotation;
+    });
+
+    this.swingRightBackward = new TWEEN.Tween({ rotation: 0 })
+    .to({ rotation: -Math.PI / 4 }, 1000)
+    .onUpdate(({ rotation }) => {
+        if (rightShoulder) rightShoulder.rotation.x = rotation;
+    });
+
+    this.currentRightTween = 'forward';
+  }
+
+  swingArms() {
+
+    if (this.currentLeftTween === 'forward') {
+      this.swingLeftBackward.start();
+      this.currentLeftTween = 'backward';
+    } else {
+      console.log('forward')
+      this.swingLeftForward.start();
+      this.currentLeftTween = 'forward';
+    }
+
+    if (this.currentRightTween === 'forward') {
+      this.swingRightBackward.start();
+      this.currentRightTween = 'backward';
+    } else {
+        this.swingRightForward.start();
+        this.currentRightTween = 'forward';
+    }
+  }
+
+  resetPos() {
+    let leftShoulder = this.model.getObjectByName('L_shoulder_s_00');
+    leftShoulder.rotation.x = Math.PI;
+    let rightShoulder = this.model.getObjectByName('R_shoulder_s_037');
+    rightShoulder.rotation.x = 0;
   }
 
 }

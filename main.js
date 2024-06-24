@@ -8,21 +8,24 @@ import Character from './src/Character.js';
 import SemiNPC from './src/SemiNPC.js';
 import Obstacle from './src/Obstacle.js';
 import Enemy from './src/Enemy.js'
+import Portal from './src/Portal.js'
 
 
 // game variables
-const map_size = 41;
+const map_size = 31;
 const resolution = new THREE.Vector2(map_size, map_size);
 const numObstacle = 70;
 const numNPC = 7;
 const numEnemies = 15;
-const charCell = Math.floor(resolution.x / 2)
+const charCell = Math.floor(resolution.x / 2);
+const portalCell = (Math.floor(resolution.x/2)) + resolution.x*resolution.x 
 const displace = 2 // initial space to leave for the main char
 const isMobile = window.innerWidth <= 768
 const charScale = 0.1;
 const npcScale = 0.1;
 const obsScale = 0.1;
 const enemyScale = 0.5;
+const portalScale = 0.5;
 let character = null;
 let characterSet = false
 let obstacles = {};
@@ -66,7 +69,7 @@ const scene = new THREE.Scene()
 scene.background = new THREE.Color(params.fogColor)
 scene.fog = new THREE.Fog(params.fogColor, 5, 40)
 
-// add terrain
+// add terrain style
 const vertexShader = `
   varying vec2 vUv;
 
@@ -132,17 +135,17 @@ for (let i = 0; i < 300; i++) {
 }
 
 // add goal cell
-const squareSize = 1; // Size of the square
-const squareGeometry = new THREE.PlaneGeometry(squareSize, squareSize);
-const squareMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide});
-const square = new THREE.Mesh(squareGeometry, squareMaterial);
-square.rotation.x = -Math.PI / 2; // Rotate to lay flat
-square.position.set(
-	Math.floor((resolution.x - 1) / 2), 
-	0.01, 
-	resolution.x -1
-); 
-scene.add(square);
+// const squareSize = 1; // Size of the square
+// const squareGeometry = new THREE.PlaneGeometry(squareSize, squareSize);
+// const squareMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide});
+// const square = new THREE.Mesh(squareGeometry, squareMaterial);
+// square.rotation.x = -Math.PI / 2; // Rotate to lay flat
+// square.position.set(
+// 	Math.floor((resolution.x - 1) / 2), 
+// 	0.01, 
+// 	resolution.x -1
+// ); 
+// scene.add(square);
 
 
 // DEBUG: set up grid helper for development
@@ -163,8 +166,8 @@ scene.add(square);
 
 // load the moon texture and bump map
 const textureLoader = new THREE.TextureLoader();
-const moonTexture = textureLoader.load('./assets/moon.jpg');
-const moonBumpMap = textureLoader.load('./assets/bump.jpg'); 
+const moonTexture = textureLoader.load('assets/moon.jpg');
+const moonBumpMap = textureLoader.load('assets/bump.jpg'); 
 
 // create the moon material with texture and bump map
 const moonMaterial = new THREE.MeshStandardMaterial({
@@ -180,7 +183,7 @@ moon.position.set(0, 8, resolution.y);
 scene.add(moon);
 
 // set up lights
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // reduce intensity
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.9); // reduce intensity
 scene.add(ambientLight)
 const directionalLight = new THREE.DirectionalLight(0xffffff, 4.5)
 // directionalLight.position.set(3, 10, 7)
@@ -199,7 +202,7 @@ const aspectRatio = sizes.width / sizes.height;
 const camera = new THREE.PerspectiveCamera(fov, aspectRatio, 0.1, 1000);
 const midX = resolution.x / 2 - 0.5;
 const midZ = resolution.y / 2 - 0.5;
-camera.position.set(midX, 10, resolution.x + (resolution.x * 0.2));
+camera.position.set(midX, 12, resolution.x + (resolution.x * 0.28));
 camera.lookAt(new THREE.Vector3(midX, 0, midZ));
 
 // set third person view
@@ -255,6 +258,16 @@ renderer.toneMappingExposure = 1.2
 renderer.shadowMap.enabled = true
 renderer.shadowMap.type = THREE.VSMShadowMap
 
+// set up OrbitControls to explore map
+const controls = new OrbitControls(camera, renderer.domElement)
+controls.enableDamping = true
+controls.target.set(
+	resolution.x / 2 - 2,
+	0,
+	resolution.y / 2 + (isMobile ? 0 : 2)
+)
+// controls.minDistance = 1; 
+controls.maxDistance = 40; 
 
 // make a set of siutable coordinates to assigne to each model
 function generateUniqueRandomNumbers(x, y, count) {
@@ -271,18 +284,8 @@ function generateUniqueRandomNumbers(x, y, count) {
   return numbers.slice(0, count);
 }
 const numCell = numNPC + numEnemies + numObstacle 
-let freeCells = generateUniqueRandomNumbers(resolution.x * displace, (resolution.x * resolution.y) - 1, numCell);
+let freeCells = generateUniqueRandomNumbers(resolution.x * displace, ((resolution.x * resolution.y) - 2*resolution.y) - 1, numCell);
 console.log('Free cells: ', freeCells);
-
-// DEBUG: set up OrbitControls
-const controls = new OrbitControls(camera, renderer.domElement)
-controls.enableDamping = true
-controls.target.set(
-	resolution.x / 2 - 2,
-	0,
-	resolution.y / 2 + (isMobile ? 0 : 2)
-)
-
 
 // load objects into the scene
 function loadObjects(
@@ -330,6 +333,10 @@ for (let k = numNPC + numEnemies ; k < numNPC + numEnemies + numObstacle; k++) {
 	loadObjects(Obstacle, obstacleUrl, resolution, freeCells[k], obsScale, obstacles)
 }
 
+// add portal
+const portalUrl = '3d_models/portal/scene.gltf';
+loadObjects(Portal, portalUrl, resolution, portalCell, portalScale, obstacles)
+
 // move around all charaters that can be moved
 function moveALL() {
   if (game_status === 'active') {
@@ -354,10 +361,12 @@ const checkStop = setInterval(gameOver, 500)
 // gui elements
 const livesElement = document.getElementById('Lives');
 const scoreElement = document.getElementById('Score');
+const duckElement = document.getElementById('Ducks');
 
 // Function to update the GUI
 function updateGUI() {
   livesElement.innerText = lives;
+	duckElement.innerText = character.occasions;
   if (character && character.prey) {
     scoreElement.innerText = `${character.preyCounter}/${numNPC}`;
   } else {
@@ -384,6 +393,7 @@ window.addEventListener('keyup', function(e){
 		character = movables[charCell]
 		console.log('character ', character)
 		characterSet = true;
+		if (character.occasions === 0) character.occasions = numNPC
 	}
 
 	// complete and exit
@@ -391,6 +401,7 @@ window.addEventListener('keyup', function(e){
 		console.log('char index ', character.index)
 		console.log('goal ', goal)
 		console.log(character.index === goal)
+		character.resetPos()
 		if (character.index === goal && character.prey){
 			console.log('game ended! ')
 			console.log('score ', character.preyCounter)
@@ -398,7 +409,47 @@ window.addEventListener('keyup', function(e){
 			controls.enabled = true
 			character.stopAnimation()
 			clearInterval(moveALL);
+
+			// redirect to vinning page
+			localStorage.setItem('score', character.preyCounter);
+			const message = document.createElement('div');
+			message.innerText = "Press Enter to view the victory screen";
+			message.style.position = 'absolute';
+			message.style.top = '10px';
+			message.style.left = '50%';
+			message.style.transform = 'translateX(-50%)';
+			message.style.color = 'white';
+			message.style.fontSize = '1.5em';
+			message.style.fontFamily = 'Arial, sans-serif';
+			document.body.appendChild(message);
+
+			// Add event listener for Enter key
+			window.addEventListener('keydown', function handleEnter(e) {
+				if (e.code === 'Enter') {
+					window.removeEventListener('keydown', handleEnter); // Remove listener to prevent multiple redirects
+					window.location.href = 'victory.html';
+				}
+			});
 			return;
+		}
+		else {
+
+			const message = document.createElement('div');
+			message.innerText = "You cannot pass through the portal without a duck!!!";
+			message.style.position = 'absolute';
+			message.style.top = '10px';
+			message.style.left = '50%';
+			message.style.transform = 'translateX(-50%)';
+			message.style.color = 'white';
+			message.style.fontSize = '1.5em';
+			message.style.fontFamily = 'Arial, sans-serif';
+			document.body.appendChild(message);
+
+			// remove message after 3 seconds
+			setTimeout(() => {
+				document.body.removeChild(message);
+			}, 3000); 
+
 		}
 	}
 
@@ -436,9 +487,9 @@ window.addEventListener('keyup', function(e){
 				scene.remove(character.prey.model);
 				character.isFirst = true;
 				character.prey = null;
-				occasions -= 1; // only the one rotating will remain
+				// occasions -= 1; 
 				console.log('occasions ', occasions)
-				if (occasions > 0) lives = 1;
+				if (character.occasions > 0) lives = 1;
 			}
 		}
 
@@ -447,10 +498,9 @@ window.addEventListener('keyup', function(e){
 			// console.log('removing ', element)
 			scene.remove(element.model);
 			delete removables[element]; 
-			occasions -= 1; // only the one rotating will remain
+			// occasions -= 1; // only the one rotating will remain
 		});
 	}
-
 	updateGUI()
 });
 
