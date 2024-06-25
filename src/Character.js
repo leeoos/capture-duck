@@ -24,6 +24,9 @@ export default class Character extends Entity {
     this.DOWN = new THREE.Vector3(0,0,-1);
     this.RIGHT = new THREE.Vector3(-1,0,0);
     this.LEFT = new THREE.Vector3(1,0,0);
+    this.last_rotation = 'up'
+    this.leftRotation = 0
+    this.rightRotation = 0
 
     // animation setup
     this.currentLeftTween = null
@@ -38,11 +41,59 @@ export default class Character extends Entity {
     this.firstStep = true;
   }
 
-  moveCharacter(keyCode, obstacles, movables, removables){
+  // moveCharacter(keyCode, obstacles, movables, removables){
 
-    // set new direction
-    let new_direction;
-    let rotation_angle;
+  //   // set new direction
+  //   let new_direction;
+  //   let rotation_angle;
+  //   switch (keyCode) {
+  //     case 'ArrowUp':
+  //     case 'KeyW':
+  //       new_direction = this.UP;
+  //       rotation_angle = 0;
+  //       break;
+  //     case 'ArrowDown':
+  //     case 'KeyS':
+  //       new_direction = this.DOWN;
+  //       rotation_angle = Math.PI;
+  //       break;
+  //     case 'ArrowLeft':
+  //     case 'KeyA':
+  //       new_direction = this.LEFT;
+  //       rotation_angle = Math.PI / 2;
+  //       break;
+  //     case 'ArrowRight':
+  //     case 'KeyD':
+  //       new_direction = this.RIGHT;
+  //       rotation_angle = -Math.PI / 2;
+  //       break;
+  //     default:
+  //       return;
+  //   }
+
+  //   let success = this.updatePosition(new_direction, obstacles, movables, removables, keyCode);
+
+  //   if (success) {
+  //     // Update the model's rotation
+  //     if (this.name === 'doll' || this.name === 'duck') {
+  //       this.model.rotation.y = rotation_angle;
+  //     }
+  //     // this.model.rotation.y = rotation_angle;
+
+  //     if (!this.animationRunning && this.name === 'wolf') {
+  //       this.swingArms();
+  //     }
+  //   }
+  //   return success;
+  // }
+
+  moveCharacter(keyCode, obstacles, movables, removables) {
+    // Calculate the current forward direction based on the model's rotation
+ 
+    
+    let new_direction = new THREE.Vector3();
+    let rotation_angle = 0
+    let go_back = false;
     switch (keyCode) {
       case 'ArrowUp':
       case 'KeyW':
@@ -52,30 +103,104 @@ export default class Character extends Entity {
       case 'ArrowDown':
       case 'KeyS':
         new_direction = this.DOWN;
-        rotation_angle = Math.PI;
+        rotation_angle = 0;
+        go_back = true;
         break;
       case 'ArrowLeft':
       case 'KeyA':
-        new_direction = this.LEFT;
         rotation_angle = Math.PI / 2;
+        this.last_rotation = 'left'
+        this.rightRotation -= 1;
+        this.leftRotation += 1
+        // this.leftRotation = this.leftRotation % 4 // reset in module 4 
         break;
       case 'ArrowRight':
       case 'KeyD':
-        new_direction = this.RIGHT;
         rotation_angle = -Math.PI / 2;
+        this.last_rotation = 'right'
+        this.leftRotation -= 1;
+        this.rightRotation += 1
+        // this.rightRotation = this.rightRotation % 4 // reset in module 4 
         break;
       default:
         return;
     }
+  
+    this.model.rotation.y += rotation_angle;
+    // console.log('last rotation: ', this.last_rotation)
+    // console.log('left ', this.leftRotation)
+    // console.log('right ', this.rightRotation)
+    // console.log('current orientation: ', currOrientation)
+
+    if (rotation_angle == 0 && !go_back) {
+
+      // left orientation
+      let foo = Math.abs(this.leftRotation)
+      let currOrientation = foo % 4
+      currOrientation = currOrientation % 4
+      
+      // if (this.last_rotation === 'left') {
+      if (this.leftRotation > 0) {
+        // let currOrientation = this.leftRotation - this.rightRotation
+        // if (currOrientation < 0) currOrientation = -currOrientation;
+        // console.log('current orientation: ', currOrientation)
+        switch(currOrientation) {
+          case 0 : 
+            new_direction = this.UP
+            break;
+          case 1 : 
+            new_direction = this.LEFT
+            break;
+          case 2 : 
+            new_direction = this.DOWN
+            break;
+          case 3 : 
+            new_direction = this.RIGHT
+            break;
+        }
+        // console.log('direction ', new_direction)
+        if (go_back) {
+          // console.log('here ', new_direction)
+          if (new_direction.x !=0) new_direction.x = -1*new_direction.x;
+          if (new_direction.z !=0) new_direction.z = -1*new_direction.z;
+        }
+        // console.log(new_direction)
+      }
+      // right orientation
+      // else if (this.last_rotation === 'right') {
+      else if (this.leftRotation <= 0) {
+        // let currOrientation = this.rightRotation - this.leftRotation 
+        // if (currOrientation < 0) currOrientation = -currOrientation;
+        // currOrientation = currOrientation % 4
+        // let bar = Math.abs(this.rightRotation)
+        // let currOrientation = bar % 4
+        switch(currOrientation) {
+          case 0 : 
+            new_direction = this.UP
+            break;
+          case 1 : 
+            new_direction = this.RIGHT
+            break;
+          case 2 : 
+            new_direction = this.DOWN
+            break;
+          case 3 : 
+            new_direction = this.LEFT
+            break;
+        }
+        // console.log('direction ', new_direction)
+        if (go_back) {
+          // console.log('here ', new_direction)
+          if (new_direction.x !=0) new_direction.x = -1*new_direction.x;
+          if (new_direction.z !=0) new_direction.z = -1*new_direction.z;
+        }
+        // console.log(new_direction)
+      }
+    }
 
     let success = this.updatePosition(new_direction, obstacles, movables, removables, keyCode);
-
-    if (success) {
-      // Update the model's rotation
-      if (this.name === 'doll' || this.name === 'duck') {
-        this.model.rotation.y = rotation_angle;
-      }
-      // this.model.rotation.y = rotation_angle;
+  
+    if (success && rotation_angle === 0) {
 
       if (!this.animationRunning && this.name === 'wolf') {
         this.swingArms();
@@ -85,6 +210,8 @@ export default class Character extends Entity {
   }
 
   updatePosition(direction, obstacles, movables, removables = null, code = null){
+
+    if (!direction) return false
 
     const old = JSON.parse(JSON.stringify(this.position));
     const old_index = JSON.parse(JSON.stringify(this.index));
@@ -124,27 +251,50 @@ export default class Character extends Entity {
   }
 
   animationSetUp() {
+
     // left shoulder
     let leftShoulder = this.model.getObjectByName('L_shoulder_s_00');
 
+    // swing left arm forward
     this.swingLeftForward = new TWEEN.Tween({ rotation: Math.PI })
     .to({ rotation: Math.PI / 4 }, 1000)
     .onUpdate(({ rotation }) => {
         if (leftShoulder) leftShoulder.rotation.x = rotation;
     });
 
-    this.swingLeftBackward = new TWEEN.Tween({ rotation: Math.PI / 4 })
+    // go back to rest from forward
+    this.swingLeftFReset = new TWEEN.Tween({ rotation: Math.PI / 4 })
     .to({ rotation: Math.PI }, 1000)
     .onUpdate(({ rotation }) => {
         if (leftShoulder) leftShoulder.rotation.x = rotation;
     });
 
-    this.currentLeftTween = 'backward';
+    // swing left arm backward
+    this.swingLeftBackward = new TWEEN.Tween({ rotation: Math.PI})
+    .to({ rotation: 3*Math.PI / 2 }, 1000)
+    .onUpdate(({ rotation }) => {
+        if (leftShoulder) leftShoulder.rotation.x = rotation;
+    });
+
+    // go back to rest form backward
+    this.swingLeftBReset = new TWEEN.Tween({ rotation: 3*Math.PI / 2 })
+    .to({ rotation: Math.PI }, 1000)
+    .onUpdate(({ rotation }) => {
+        if (leftShoulder) leftShoulder.rotation.x = rotation;
+    });
+
+    this.currentLeftTween = 'f-reset';
 
     // right shoulder
     let rightShoulder = this.model.getObjectByName('R_shoulder_s_037');
 
-    this.swingRightForward = new TWEEN.Tween({ rotation:  -Math.PI / 4 })
+    this.swingRightForward = new TWEEN.Tween({ rotation:  0 })
+    .to({ rotation: Math.PI / 4 }, 1000)
+    .onUpdate(({ rotation }) => {
+        if (rightShoulder) rightShoulder.rotation.x = rotation;
+    });
+
+    this.swingRightFReset = new TWEEN.Tween({ rotation: Math.PI / 4 })
     .to({ rotation: 0 }, 1000)
     .onUpdate(({ rotation }) => {
         if (rightShoulder) rightShoulder.rotation.x = rotation;
@@ -156,26 +306,53 @@ export default class Character extends Entity {
         if (rightShoulder) rightShoulder.rotation.x = rotation;
     });
 
-    this.currentRightTween = 'forward';
+    this.swingRightBReset = new TWEEN.Tween({ rotation: -Math.PI / 4 })
+    .to({ rotation: 0 }, 1000)
+    .onUpdate(({ rotation }) => {
+        if (rightShoulder) rightShoulder.rotation.x = rotation;
+    });
+
+    this.currentRightTween = 'b-reset';
   }
+
 
   swingArms() {
 
+    // left 
     if (this.currentLeftTween === 'forward') {
+      this.swingLeftFReset.start();
+      this.currentLeftTween = 'f-reset';  
+    }
+    else if (this.currentLeftTween === 'f-reset') {
+      console.log('go backkkkkk')
       this.swingLeftBackward.start();
-      this.currentLeftTween = 'backward';
-    } else {
-      console.log('forward')
+      this.currentLeftTween = 'backward'; 
+    }
+    else if (this.currentLeftTween === 'backward') {
+      this.swingLeftBReset.start();
+      this.currentLeftTween = 'b-reset'; 
+    }
+    else {
       this.swingLeftForward.start();
-      this.currentLeftTween = 'forward';
+      this.currentLeftTween = 'forward'; 
     }
 
+    // right
     if (this.currentRightTween === 'forward') {
+      this.swingRightFReset.start();
+      this.currentRightTween = 'f-reset';  
+    }
+    else if (this.currentRightTween === 'f-reset') {
       this.swingRightBackward.start();
-      this.currentRightTween = 'backward';
-    } else {
-        this.swingRightForward.start();
-        this.currentRightTween = 'forward';
+      this.currentRightTween = 'backward'; 
+    }
+    else if (this.currentRightTween === 'backward') {
+      this.swingRightBReset.start();
+      this.currentRightTween = 'b-reset'; 
+    }
+    else {
+      this.swingRightForward.start();
+      this.currentRightTween = 'forward'; 
     }
   }
 

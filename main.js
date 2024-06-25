@@ -285,7 +285,7 @@ function generateUniqueRandomNumbers(x, y, count) {
 }
 const numCell = numNPC + numEnemies + numObstacle 
 let freeCells = generateUniqueRandomNumbers(resolution.x * displace, ((resolution.x * resolution.y) - 2*resolution.y) - 1, numCell);
-console.log('Free cells: ', freeCells);
+// console.log('Free cells: ', freeCells);
 
 // load objects into the scene
 function loadObjects(
@@ -454,6 +454,12 @@ window.addEventListener('keyup', function(e){
 	}
 
 	if (e.code === "KeyP") {
+    
+		const startMessage = document.getElementById('startMessage');
+    if (startMessage) {
+      startMessage.style.display = 'none';
+    }
+
 		if (game_status === 'active') {
 			game_status = 'paused'
 			console.log('game paused')
@@ -488,7 +494,7 @@ window.addEventListener('keyup', function(e){
 				character.isFirst = true;
 				character.prey = null;
 				// occasions -= 1; 
-				console.log('occasions ', occasions)
+				// console.log('occasions ', occasions)
 				if (character.occasions > 0) lives = 1;
 			}
 		}
