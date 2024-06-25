@@ -1,3 +1,6 @@
 # Capture Duck
 
-Follow the link to try the [game](https://leeoos.github.io)
+Download this repo then
+`npm install`
+`npm run dev`
+to test
