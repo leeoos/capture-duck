@@ -98,6 +98,18 @@
             scoreElement.innerText = `Score: ${score}`;
         }
 
+        const msg = localStorage.getItem('message');
+        const msgElement = document.getElementById('message');
+        if (score <= 3) {
+            msgElement.innerText = `Mmh... Press B if you wanna try to do best!`;
+        }
+        else if (score > 3 && score <= 6) {
+            msgElement.innerText = `Not bad! Press B to do better!`;
+        }
+        else {
+            msgElement.innerText = `Excellent!!! Press B to continue the strick!`;
+        }
+
         function jumpAndRaiseArm() {
             const jumpHeight = 0.5;
             const jumpDuration = 500;

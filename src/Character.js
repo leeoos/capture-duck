@@ -102,7 +102,7 @@ export default class Character extends Entity {
         break;
       case 'ArrowDown':
       case 'KeyS':
-        new_direction = this.DOWN;
+        new_direction = this.UP;
         rotation_angle = 0;
         go_back = true;
         break;
@@ -132,12 +132,12 @@ export default class Character extends Entity {
     // console.log('right ', this.rightRotation)
     // console.log('current orientation: ', currOrientation)
 
-    if (rotation_angle == 0 && !go_back) {
+    if (rotation_angle == 0) {
 
       // left orientation
       let foo = Math.abs(this.leftRotation)
       let currOrientation = foo % 4
-      currOrientation = currOrientation % 4
+      // currOrientation = currOrientation % 4
       
       // if (this.last_rotation === 'left') {
       if (this.leftRotation > 0) {
@@ -159,11 +159,12 @@ export default class Character extends Entity {
             break;
         }
         // console.log('direction ', new_direction)
-        if (go_back) {
-          // console.log('here ', new_direction)
-          if (new_direction.x !=0) new_direction.x = -1*new_direction.x;
-          if (new_direction.z !=0) new_direction.z = -1*new_direction.z;
-        }
+        // if (go_back) {
+        //   // console.log('here ', new_direction)
+        //   if (new_direction.x !=0) new_direction.x = -1*new_direction.x;
+        //   if (new_direction.z !=0) new_direction.z = -1*new_direction.z;
+        //   go_back = false
+        // }
         // console.log(new_direction)
       }
       // right orientation
@@ -189,13 +190,33 @@ export default class Character extends Entity {
             break;
         }
         // console.log('direction ', new_direction)
-        if (go_back) {
-          // console.log('here ', new_direction)
-          if (new_direction.x !=0) new_direction.x = -1*new_direction.x;
-          if (new_direction.z !=0) new_direction.z = -1*new_direction.z;
-        }
+        // if (go_back) {
+        //   // console.log('here ', new_direction)
+        //   if (new_direction.x !=0) new_direction.x = -1*new_direction.x;
+        //   if (new_direction.z !=0) new_direction.z = -1*new_direction.z;
+        //   go_back = false
+        // }
         // console.log(new_direction)
       }
+      if (go_back) {
+        switch (new_direction) {
+          case this.UP:
+            new_direction = this.DOWN
+            break;
+          case this.DOWN:
+            new_direction = this.UP
+            break;
+          case this.LEFT:
+            new_direction = this.RIGHT
+            break;
+          case this.RIGHT:
+            new_direction = this.LEFT
+            break;
+          default:
+            break;
+        }
+      }
+
     }
 
     let success = this.updatePosition(new_direction, obstacles, movables, removables, keyCode);

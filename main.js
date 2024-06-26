@@ -482,9 +482,9 @@ window.addEventListener('keyup', function(e){
 
 	// console.log(movables[charCell])
 	if (game_status == 'active' && lives > 0) {
+		character.moveCharacter(e.code, obstacles, movables, removables);
 		transitionToThirdPerson(character, setFollow);
 		setFollow = false; // avoid camera transition
-		character.moveCharacter(e.code, obstacles, movables, removables);
 		console.log('prey counter ', character.preyCounter)
 		if (character.prey) {
 			lives = character.preyCounter
