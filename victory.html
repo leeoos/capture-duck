@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Victory Screen</title>
     <style>
-                body {
+        body {
             margin: 0;
             overflow: hidden;
             background-color: black;
@@ -17,13 +17,8 @@
             color: white;
             font-family: Arial, sans-serif;
             height: 100vh;
-            padding-top: 20px; /* Adjust this value to move the messages higher or lower */
+            padding-top: 20px;
         }
-        /* #congrat {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            text-align: center;
-        } */
         #score {
             font-size: 2em;
             margin-bottom: 10px;
@@ -32,7 +27,7 @@
         #message {
             font-size: 1.5em;
             text-align: center;
-            margin-bottom: 20px; /* Adjust this value to move the message higher or lower */
+            margin-bottom: 20px;
         }
     </style>
 </head>
@@ -40,10 +35,11 @@
     <div id="score">Score: 0</div>
     <div id="message">Press B to return to the game</div>
     <script type="module">
+        import TWEEN from '@tweenjs/tween.js';
         import * as THREE from 'three';
         import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
         import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-        
+
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer();
@@ -57,21 +53,28 @@
         directionalLight.position.set(0, 10, 10).normalize();
         scene.add(directionalLight);
         
-        // rendering sizes
         const sizes = {
             width: window.innerWidth,
             height: window.innerHeight,
         }
-        
+
+        let loaderModel = null;
         const loader = new GLTFLoader();
         const characterUrl = '3d_models/wolf/scene.gltf';
         loader.load(characterUrl, function(gltf) {
-            const model = gltf.scene;
-            model.scale.set(0.1, 0.1, 0.1);
-            scene.add(model);
+            loaderModel = gltf.scene;
+            loaderModel.scale.set(0.1, 0.1, 0.1);
+            scene.add(loaderModel);
             animate();
         });
-        
+
+        const checkModelLoaded = setInterval(() => {
+            if (loaderModel) {
+                console.log('loader model ', loaderModel);
+                clearInterval(checkModelLoaded);
+            }
+        }, 100);
+
         camera.position.y = 0.5;
         camera.position.z = 2;
 
@@ -82,39 +85,69 @@
         controls.minDistance = 1; 
         controls.maxDistance = 10; 
 
-        
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
+            TWEEN.update();
             renderer.render(scene, camera);
         }
 
-        // Retrieve and display the score
         const score = localStorage.getItem('score');
         const scoreElement = document.getElementById('score');
         if (score) {
             scoreElement.innerText = `Score: ${score}`;
         }
-        
+
+        function jumpAndRaiseArm() {
+            const jumpHeight = 0.5;
+            const jumpDuration = 500;
+            const raiseArmDuration = 500;
+
+            // Jumping animation
+            new TWEEN.Tween(loaderModel.position)
+                .to({ y: loaderModel.position.y + jumpHeight }, jumpDuration)
+                .yoyo(true)
+                .repeat(1)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .start();
+
+            // Raising arm animation
+            const lShoulder = loaderModel.getObjectByName('L_shoulder_s_00');
+            if (lShoulder) {
+                new TWEEN.Tween({ rotation: Math.PI })
+                    .to({ rotation: Math.PI / 6 }, raiseArmDuration)
+                    .onUpdate(({ rotation }) => {
+                        lShoulder.rotation.x = rotation;
+                    })
+                    .yoyo(true)
+                    .repeat(1)
+                    .easing(TWEEN.Easing.Quadratic.Out)
+                    .start();
+            }
+        }
+
         window.addEventListener('keydown', function(e) {
             if (e.code === 'KeyB') {
-                window.location.href = 'index.html'; // Redirect back to the game page
+                window.location.href = 'index.html';
+            }
+
+            if (e.code === 'Enter') {
+                jumpAndRaiseArm();
             }
         });
 
-        // adaptive windows 
         window.addEventListener('resize', handleResize);
         function handleResize() {
             sizes.width = window.innerWidth;
             sizes.height = window.innerHeight;
 
-            camera.aspect = sizes.width / sizes.height
+            camera.aspect = sizes.width / sizes.height;
             camera.updateProjectionMatrix();
 
-            renderer.setSize(sizes.width, sizes.height)
+            renderer.setSize(sizes.width, sizes.height);
 
-            const pixelRatio = Math.min(window.devicePixelRatio, 2)
-            renderer.setPixelRatio(pixelRatio)
+            const pixelRatio = Math.min(window.devicePixelRatio, 2);
+            renderer.setPixelRatio(pixelRatio);
         }
     </script>
 </body>
